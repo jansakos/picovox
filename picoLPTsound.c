@@ -19,6 +19,16 @@
 #include "pio/covox.pio.h"
 #include "pico/audio_i2s.h"
 
+typedef enum {
+    COVOX, 
+    STEREO, 
+    DSS, 
+    FTL, 
+    OPL2LPT, 
+    CMSLPT, 
+    TNDLPT, 
+    COUNT // COUNT is used for checking count of devices available
+} simulated_device;
 
 int main()
 {
