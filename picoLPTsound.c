@@ -30,6 +30,15 @@ typedef enum {
     COUNT // COUNT is used for checking count of devices available
 } simulated_device;
 
+simulated_device current_device = COVOX;
+
+// Changes simulation to next device in enum
+bool change_device(void) {
+    unload_device(current_device);
+    current_device = (current_device + 1) % COUNT;
+    load_device(current_device);
+}
+
 int main()
 {
     stdio_init_all();
