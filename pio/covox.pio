@@ -1,0 +1,6 @@
+.program covox
+
+.wrap_target
+    in pins, 8
+    push block
+.wrap
