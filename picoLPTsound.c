@@ -13,6 +13,7 @@
 #define SAMPLE_RATE 44100
 
 #include <stdio.h>
+#include <stdbool.h>
 #include "pico/stdlib.h"
 #include "hardware/clocks.h"
 #include "hardware/pio.h"
@@ -43,5 +44,8 @@ int main()
 {
     stdio_init_all();
 
+    load_device(current_device);
+
+    load_audio();
     
 }
