@@ -70,5 +70,5 @@ target_include_directories(picoLPTsound PRIVATE
         ${PIO_PATH}/generated_pio_headers
 )
 
-pico_add_extra_outputs(picoLPTsound)
+pico_add_extra_outputs(picoLPTsound covox)
 
