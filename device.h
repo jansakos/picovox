@@ -44,6 +44,7 @@ typedef struct Device {
  * @brief Declarations for creating instances of all types of modes.
  * 
  * Each mode is stored in its own file, implementing all the functions of struct above.
+ * Always check if return value is not NULL (allocation failed)!
  */
 Device *create_covox();
 Device *create_stereo();
