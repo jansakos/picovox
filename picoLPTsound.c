@@ -6,11 +6,12 @@
 #define PICO_AUDIO_DMA_IRQ 1
 #define SAMPLES_PER_BUFFER 512
 #define NUM_BUFFERS 8
+#define SAMPLE_RATE 44100
+#define CHANNEL_COUNT 2
 
 // Definitions for PIO programs
 #define LPT_STROBE_PIN 0
 #define LPT_DATA_BASE 1
-#define SAMPLE_RATE 44100
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -40,12 +41,54 @@ bool change_device(void) {
     load_device(current_device);
 }
 
+const audio_format_t *setup_format(void) {
+    const audio_format_t requested_format = {
+        .sample_freq = SAMPLE_RATE,
+        .channel_count = CHANNEL_COUNT,
+        .format = AUDIO_BUFFER_FORMAT_PCM_S16
+    };
+
+    const audio_i2s_config_t config = {
+        .data_pin = PICO_AUDIO_I2S_DATA_PIN,
+        .clock_pin_base = PICO_AUDIO_I2S_CLOCK_PIN_BASE,
+        .dma_channel = 0,
+        .pio_sm = 0
+    };
+
+    return audio_i2s_setup(&requested_format, &config);
+}
+
+audio_buffer_pool_t *load_audio(void) {
+    const audio_format_t *audio_format = setup_format();
+
+    if (audio_format == NULL) {
+        return NULL;
+    }
+
+    const audio_buffer_format_t buffer_format = {
+        .format = audio_format,
+        .sample_stride = 4
+    };
+
+    audio_buffer_pool_t *buffer_pool = audio_new_producer_pool(&buffer_format, NUM_BUFFERS, SAMPLES_PER_BUFFER);
+
+    if (!audio_i2s_connect(buffer_pool)) {
+        return NULL;
+    }
+
+    audio_i2s_set_enabled(true);
+    return buffer_pool;
+}
+
 int main()
 {
     stdio_init_all();
 
     load_device(current_device);
 
-    load_audio();
+    audio_buffer_pool_t *buffer_pool = load_audio();
+    if (buffer_pool = NULL) {
+        return 1;
+    }
     
 }
