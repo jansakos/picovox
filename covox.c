@@ -68,8 +68,8 @@ bool unload_covox(Device *self) {
 }
 
 size_t generate_covox(Device *self, int16_t *left_sample, int16_t *right_sample) {
-    if (pio_sm_is_rx_fifo_empty(used_pio, used_sm)) {
-        return 0;
+    while (pio_sm_is_rx_fifo_empty(used_pio, used_sm)) {
+        tight_loop_contents();
     }
     int16_t current_sample = (((pio_sm_get(used_pio, used_sm) >> 24) & 0xFF) - 128) << 8;
     *left_sample = current_sample;

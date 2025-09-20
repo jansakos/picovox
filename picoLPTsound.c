@@ -126,5 +126,4 @@ int main()
         buffer->sample_count = buffer->max_sample_count;
         give_audio_buffer(buffer_pool, buffer);
     }
-    printf("Vyjeli jsme z mainu piči.");
 }
