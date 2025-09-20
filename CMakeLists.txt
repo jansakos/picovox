@@ -42,12 +42,11 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(picoLPTsound picoLPTsound.c )
+add_executable(picoLPTsound picoLPTsound.c covox.c)
 
 # Add all PIOs to compile
-pico_generate_pio_header(${PROJECT_NAME}  
+pico_generate_pio_header(${PROJECT_NAME}
         ${PIO_PATH}/covox.pio
-        ${PICO_EXTRAS_PATH}/src/rp2_common/pico_audio_i2s/audio_i2s.pio
 )
 
 pico_set_program_name(picoLPTsound "picoLPTsound")
@@ -67,8 +66,8 @@ target_link_libraries(picoLPTsound
 # Add the standard include files to the build
 target_include_directories(picoLPTsound PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
-        ${PIO_PATH}/generated_pio_headers
+        ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-pico_add_extra_outputs(picoLPTsound covox)
+pico_add_extra_outputs(picoLPTsound)
 

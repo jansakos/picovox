@@ -15,7 +15,7 @@
 #include "pico/audio_i2s.h"
 #include "device.h"
 
-static const int NUM_DEVICES = 1;
+#define NUM_DEVICES 1
 Device *devices[NUM_DEVICES];
 uint8_t current_device = 0;
 
@@ -73,7 +73,7 @@ audio_buffer_pool_t *load_audio(void) {
         return NULL;
     }
 
-    const audio_buffer_format_t buffer_format = {
+    audio_buffer_format_t buffer_format = {
         .format = audio_format,
         .sample_stride = 4
     };

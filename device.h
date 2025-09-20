@@ -14,7 +14,7 @@ typedef struct Device {
      * 
      * @param self is a pointer to the simulated device itself.
      * 
-     * @return true if devices is loaded, false if anything failed.
+     * @return true if device is loaded, false if anything failed.
      */
     bool (*load_device)(struct Device *self);
 
@@ -23,7 +23,7 @@ typedef struct Device {
      * 
      * @param self is a pointer to the simulated device itself.
      * 
-     * @return true if devices is unloaded, false if anything failed.
+     * @return true if device is unloaded, false if anything failed.
      */
     bool (*unload_device)(struct Device *self);
 
