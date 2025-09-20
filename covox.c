@@ -6,6 +6,9 @@
 #include "hardware/pio.h"
 #include "pio/covox.pio.h"
 
+#define LPT_BASE_PIN 1
+#define SAMPLE_RATE 44100
+
 // Variables for PIO - each device simulated has its own
 static PIO used_pio;
 static uint8_t used_sm;
@@ -30,12 +33,32 @@ static void choose_sm(void) {
 
 bool load_covox(Device *self) {
     choose_sm();
-    if (used_sm == -1) { // If not any free sm, abort
+    if (used_sm < 0) { // If not any free sm, abort
         return false;
     }
 
     used_offset = pio_add_program(used_pio, &covox_program);
-    
+    if (used_offset < 0) {
+        return false;
+    }
+
+    pio_sm_config used_config = covox_program_get_default_config(used_offset);
+    sm_config_set_in_pins(&used_config, LPT_BASE_PIN);
+    sm_config_set_fifo_join(&used_config, PIO_FIFO_JOIN_RX);
+    sm_config_set_clkdiv(&used_config, ((float) clock_get_hz(clk_sys)) / (SAMPLE_RATE * 2));
+
+    for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 8; i++) { // Sets pins to use PIO
+        pio_gpio_init(used_pio, i);
+    }
+
+    pio_sm_set_consecutive_pindirs(used_pio, used_sm, LPT_BASE_PIN, 8, false); // Sets pins in PIO to be in
+
+    if (pio_sm_init(used_pio, used_sm, used_offset, &used_config) < 0) {
+        return false;
+    }
+
+    pio_sm_set_enabled(used_pio, used_sm, true);
+    return true;
 }
 
 bool unload_covox(Device *self) {
