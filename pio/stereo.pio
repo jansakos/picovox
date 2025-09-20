@@ -1,0 +1,6 @@
+.program stereo
+
+.wrap_target
+    in pins, 9
+    push block
+.wrap

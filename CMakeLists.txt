@@ -42,11 +42,12 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(picoLPTsound picoLPTsound.c covox.c)
+add_executable(picoLPTsound picoLPTsound.c covox.c stereo.c)
 
 # Add all PIOs to compile
 pico_generate_pio_header(${PROJECT_NAME}
     ${PIO_PATH}/covox.pio
+    ${PIO_PATH}/stereo.pio
 )
 
 pico_set_program_name(picoLPTsound "picoLPTsound")

@@ -46,8 +46,8 @@ typedef struct Device {
  * Always check if return value is not NULL (allocation failed)!
  */
 Device *create_covox();
-/*Device *create_stereo();
-Device *create_dss();
+Device *create_stereo();
+/*Device *create_dss();
 Device *create_ftl();
 Device *create_opl2lpt();
 Device *create_cmslpt();

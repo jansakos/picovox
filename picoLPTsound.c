@@ -15,14 +15,14 @@
 #include "pico/audio_i2s.h"
 #include "device.h"
 
-#define NUM_DEVICES 1
+#define NUM_DEVICES 2
 Device *devices[NUM_DEVICES];
-uint8_t current_device = 0;
+uint8_t current_device = 1;
 
 bool load_device_list() {
     devices[0] = create_covox();
-/*    devices[1] = create_stereo();
-    devices[2] = create_dss();
+    devices[1] = create_stereo();
+/*    devices[2] = create_dss();
     devices[3] = create_ftl();
     devices[4] = create_opl2lpt();
     devices[5] = create_cmslpt();
