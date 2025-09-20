@@ -105,4 +105,24 @@ int main()
         return 1;
     }
     
+    int16_t left_sample = 0;
+    int16_t right_sample = 0;
+    audio_buffer_t *buffer = NULL;
+
+    while(true) {
+        while ((buffer = take_audio_buffer(buffer_pool, false)) == NULL) {
+            tight_loop_contents();
+        }
+
+        int16_t *samples = (int16_t *)buffer->buffer->bytes;
+
+        for (uint i = 0; i < buffer->max_sample_count; i++) {
+            devices[current_device]->generate_sample(devices[current_device], &left_sample, &right_sample);
+            samples[2 * i]     = left_sample;
+            samples[2 * i + 1] = right_sample;
+        }
+
+        buffer->sample_count = buffer->max_sample_count;
+        give_audio_buffer(buffer_pool, buffer);
+    }
 }
