@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "device.h"
+#include "hardware/clocks.h"
+#include "hardware/pio.h"
 #include "pio/covox.pio.h"
 
 // Variables for PIO - each device simulated has its own
@@ -9,8 +11,31 @@ static PIO used_pio;
 static uint8_t used_sm;
 static uint used_offset;
 
-bool load_covox(Device *self) {
+static void choose_sm(void) {
+    used_pio = pio0;
+    used_sm = pio_claim_unused_sm(used_pio, false);
 
+    if (used_sm == -1) { // If no free sm on PIO0, try PIO1
+        used_pio = pio1;
+        used_sm = pio_claim_unused_sm(used_pio, false);
+    }
+
+#ifdef PICO_RP2350
+    if (used_sm == -1) { // If no free sm on PIO1, try PIO2 (not on Pico1)
+        used_pio = pio2;
+        used_sm = pio_claim_unused_sm(used_pio, false);
+    }
+#endif
+}
+
+bool load_covox(Device *self) {
+    choose_sm();
+    if (used_sm == -1) { // If not any free sm, abort
+        return false;
+    }
+
+    used_offset = pio_add_program(used_pio, &covox_program);
+    
 }
 
 bool unload_covox(Device *self) {
