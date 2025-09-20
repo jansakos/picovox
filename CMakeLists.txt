@@ -46,7 +46,7 @@ add_executable(picoLPTsound picoLPTsound.c covox.c)
 
 # Add all PIOs to compile
 pico_generate_pio_header(${PROJECT_NAME}
-        ${PIO_PATH}/covox.pio
+    ${PIO_PATH}/covox.pio
 )
 
 pico_set_program_name(picoLPTsound "picoLPTsound")
@@ -61,12 +61,11 @@ target_link_libraries(picoLPTsound
         pico_stdlib
         hardware_pio
         hardware_clocks
-        pico_audio_i2s)
+        pico_audio_i2s )
 
 # Add the standard include files to the build
 target_include_directories(picoLPTsound PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
-        ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 pico_add_extra_outputs(picoLPTsound)

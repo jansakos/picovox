@@ -49,14 +49,14 @@ bool change_device(void) {
     return true;
 }
 
-const audio_format_t *setup_format(void) {
-    const audio_format_t requested_format = {
-        .sample_freq = SAMPLE_RATE,
-        .channel_count = CHANNEL_COUNT,
-        .format = AUDIO_BUFFER_FORMAT_PCM_S16
-    };
+audio_format_t requested_format = {
+    .sample_freq = SAMPLE_RATE,
+    .channel_count = CHANNEL_COUNT,
+    .format = AUDIO_BUFFER_FORMAT_PCM_S16
+};
 
-    const audio_i2s_config_t config = {
+const audio_format_t *setup_format(void) {
+    static audio_i2s_config_t config = {
         .data_pin = PICO_AUDIO_I2S_DATA_PIN,
         .clock_pin_base = PICO_AUDIO_I2S_CLOCK_PIN_BASE,
         .dma_channel = 0,
@@ -73,8 +73,8 @@ audio_buffer_pool_t *load_audio(void) {
         return NULL;
     }
 
-    audio_buffer_format_t buffer_format = {
-        .format = audio_format,
+    static audio_buffer_format_t buffer_format = {
+        .format = &requested_format,
         .sample_stride = 4
     };
 
@@ -83,6 +83,7 @@ audio_buffer_pool_t *load_audio(void) {
     if (!audio_i2s_connect(buffer_pool)) {
         return NULL;
     }
+    
 
     audio_i2s_set_enabled(true);
     return buffer_pool;
@@ -96,12 +97,12 @@ int main()
         return 1;
     }
 
-    audio_buffer_pool_t *buffer_pool = load_audio();
-    if (buffer_pool == NULL) {
+    if (!devices[current_device]->load_device(devices[current_device])) {
         return 1;
     }
 
-    if (!devices[current_device]->load_device(devices[current_device])) {
+    audio_buffer_pool_t *buffer_pool = load_audio();
+    if (buffer_pool == NULL) {
         return 1;
     }
     
@@ -125,4 +126,5 @@ int main()
         buffer->sample_count = buffer->max_sample_count;
         give_audio_buffer(buffer_pool, buffer);
     }
+    printf("Vyjeli jsme z mainu piči.");
 }
