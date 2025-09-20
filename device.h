@@ -28,16 +28,15 @@ typedef struct Device {
     bool (*unload_device)(struct Device *self);
 
     /**
-     * @brief Function generates a sound sample based on data sent from LPT.
+     * @brief Function reads data from PIo buffer and generates a sound sample based on data sent.
      * 
      * @param self is a pointer to the simulated device itself.
-     * @param raw_data is a number received from the RX FIFO.
      * @param left_sample is a pointer to number where sample for left channel is placed.
      * @param right_sample is a pointer to number where sample for right channel is placed.
      * 
      * @return number of samples available in internal device buffer.
      */
-    size_t (*generate_sample)(struct Device *self, uint32_t raw_data, int16_t *left_sample, int16_t *right_sample);
+    size_t (*generate_sample)(struct Device *self, int16_t *left_sample, int16_t *right_sample);
 } Device;
 
 /**
