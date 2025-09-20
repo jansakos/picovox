@@ -9,36 +9,44 @@
 #define SAMPLE_RATE 44100
 #define CHANNEL_COUNT 2
 
-// Definitions for PIO programs
-#define LPT_STROBE_PIN 0
-#define LPT_DATA_BASE 1
-
 #include <stdio.h>
 #include <stdbool.h>
 #include "pico/stdlib.h"
-#include "hardware/clocks.h"
-#include "hardware/pio.h"
-#include "pio/covox.pio.h"
 #include "pico/audio_i2s.h"
+#include "device.h"
 
-typedef enum {
-    COVOX, 
-    STEREO, 
-    DSS, 
-    FTL, 
-    OPL2LPT, 
-    CMSLPT, 
-    TNDLPT, 
-    COUNT // COUNT is used for checking count of devices available
-} simulated_device;
+static const int NUM_DEVICES = 1;
+Device *devices[NUM_DEVICES];
+uint8_t current_device = 0;
 
-simulated_device current_device = COVOX;
+bool load_device_list() {
+    devices[0] = create_covox();
+/*    devices[1] = create_stereo();
+    devices[2] = create_dss();
+    devices[3] = create_ftl();
+    devices[4] = create_opl2lpt();
+    devices[5] = create_cmslpt();
+    devices[6] = create_tndlpt();*/
+
+    for (int i = 0; i < NUM_DEVICES; i++) {
+        if (devices[i] == NULL) {
+            return false;
+        }
+    }
+
+    return true;
+}
 
 // Changes simulation to next device in enum
 bool change_device(void) {
-    unload_device(current_device);
-    current_device = (current_device + 1) % COUNT;
-    load_device(current_device);
+    if (!devices[current_device]->unload_device(devices[current_device])) {
+        return false;
+    }
+    current_device = (current_device + 1) % NUM_DEVICES;
+    if (!devices[current_device]->load_device(devices[current_device])) {
+        return false;
+    }
+    return true;
 }
 
 const audio_format_t *setup_format(void) {
@@ -84,10 +92,16 @@ int main()
 {
     stdio_init_all();
 
-    load_device(current_device);
+    if (!load_device_list()) {
+        return 1;
+    }
 
     audio_buffer_pool_t *buffer_pool = load_audio();
-    if (buffer_pool = NULL) {
+    if (buffer_pool == NULL) {
+        return 1;
+    }
+
+    if (!devices[current_device]->load_device(devices[current_device])) {
         return 1;
     }
     

@@ -28,7 +28,7 @@ typedef struct Device {
     bool (*unload_device)(struct Device *self);
 
     /**
-     * @brief Function reads data from PIo buffer and generates a sound sample based on data sent.
+     * @brief Function reads data from PIO buffer and generates a sound sample based on data sent.
      * 
      * @param self is a pointer to the simulated device itself.
      * @param left_sample is a pointer to number where sample for left channel is placed.
@@ -46,11 +46,11 @@ typedef struct Device {
  * Always check if return value is not NULL (allocation failed)!
  */
 Device *create_covox();
-Device *create_stereo();
+/*Device *create_stereo();
 Device *create_dss();
 Device *create_ftl();
 Device *create_opl2lpt();
 Device *create_cmslpt();
-Device *create_tndlpt();
+Device *create_tndlpt();*/
 
 #endif
