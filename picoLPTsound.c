@@ -23,7 +23,7 @@ volatile absolute_time_t last_change_press;
 
 #define NUM_DEVICES 3
 Device *devices[NUM_DEVICES];
-uint8_t current_device = 2;
+uint8_t current_device = 0;
 
 bool load_device_list() {
     devices[0] = create_covox();
@@ -46,9 +46,10 @@ bool load_device_list() {
 // Changes simulation to next device in enum
 void change_device(uint gpio, uint32_t events) {
 
-    if (get_absolute_time() - last_change_press < 20000) {
+    if (get_absolute_time() - last_change_press < 200000) {
         return;
     }
+    printf("Měníme\n");
     last_change_press = get_absolute_time();
 
     if (!devices[current_device]->unload_device(devices[current_device])) {
