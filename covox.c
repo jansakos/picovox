@@ -8,7 +8,7 @@
 #include "covox.pio.h"
 
 #define LPT_BASE_PIN 1
-#define SAMPLE_RATE 44100
+#define SAMPLE_RATE 96000
 
 // Variables for PIO - each device simulated has its own
 static PIO used_pio;

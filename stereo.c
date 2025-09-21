@@ -8,7 +8,7 @@
 #include "stereo.pio.h"
 
 #define LPT_BASE_PIN 0
-#define SAMPLE_RATE 44100
+#define SAMPLE_RATE 96000
 
 // Variables for PIO - each device simulated has its own
 static PIO used_pio;
@@ -41,7 +41,7 @@ bool load_stereo(Device *self) {
     pio_sm_config used_config = stereo_program_get_default_config(used_offset);
     sm_config_set_in_pins(&used_config, LPT_BASE_PIN);
     sm_config_set_fifo_join(&used_config, PIO_FIFO_JOIN_RX);
-    sm_config_set_clkdiv(&used_config, (((float) clock_get_hz(clk_sys)) / (SAMPLE_RATE * 4)));
+    sm_config_set_clkdiv(&used_config, (((float) clock_get_hz(clk_sys)) / (SAMPLE_RATE * 32)));
 
     for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 9; i++) { // Sets pins to use PIO
         pio_gpio_init(used_pio, i);
@@ -72,7 +72,7 @@ bool unload_stereo(Device *self) {
 }
 
 size_t generate_stereo(Device *self, int16_t *left_sample, int16_t *right_sample) {
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 16; i++) {
         while (pio_sm_is_rx_fifo_empty(used_pio, used_sm)) {
             tight_loop_contents();
         }

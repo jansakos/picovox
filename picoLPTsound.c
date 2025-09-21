@@ -6,7 +6,7 @@
 #define PICO_AUDIO_DMA_IRQ 1
 #define SAMPLES_PER_BUFFER 512
 #define NUM_BUFFERS 8
-#define SAMPLE_RATE 44100
+#define SAMPLE_RATE 96000
 #define CHANNEL_COUNT 2
 
 // Button for changing the device (GPIO - ground)
@@ -49,7 +49,6 @@ void change_device(uint gpio, uint32_t events) {
     if (get_absolute_time() - last_change_press < 200000) {
         return;
     }
-    printf("Měníme\n");
     last_change_press = get_absolute_time();
 
     if (!devices[current_device]->unload_device(devices[current_device])) {
@@ -59,6 +58,7 @@ void change_device(uint gpio, uint32_t events) {
     if (!devices[current_device]->load_device(devices[current_device])) {
         panic("Could not load device /d\n", current_device);
     }
+    printf("Switched to %d", current_device);
 }
 
 audio_format_t requested_format = {
