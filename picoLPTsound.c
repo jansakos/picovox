@@ -9,6 +9,9 @@
 #define SAMPLE_RATE 44100
 #define CHANNEL_COUNT 2
 
+// Button for changing the device (GPIO - ground)
+#define CHANGE_BUTTON 15
+
 #include <stdio.h>
 #include <stdbool.h>
 #include "pico/stdlib.h"
@@ -88,6 +91,14 @@ audio_buffer_pool_t *load_audio(void) {
     return buffer_pool;
 }
 
+void load_change_device_irq(void) {
+    gpio_init(CHANGE_BUTTON);
+    gpio_set_dir(CHANGE_BUTTON, GPIO_IN);
+    gpio_pull_up(CHANGE_BUTTON);
+
+    gpio_set_irq_enabled_with_callback(CHANGE_BUTTON, GPIO_IRQ_EDGE_FALL, true, &change_device);
+}
+
 int main()
 {
     stdio_init_all();
@@ -104,6 +115,8 @@ int main()
     if (buffer_pool == NULL) {
         return 1;
     }
+
+    load_change_device_irq();
     
     int16_t left_sample = 0;
     int16_t right_sample = 0;
