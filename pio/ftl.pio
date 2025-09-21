@@ -8,8 +8,7 @@
 .program ftl_detection
 
 .wrap_target
-    wait 1 pin 0
-    set pins, 1
-    wait 0 pin 0
-    set pins, 0
+    in pins, 1
+    mov osr, isr
+    out pins, 1
 .wrap

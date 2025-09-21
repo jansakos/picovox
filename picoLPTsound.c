@@ -17,7 +17,7 @@
 
 #define NUM_DEVICES 3
 Device *devices[NUM_DEVICES];
-uint8_t current_device = 0;
+uint8_t current_device = 2;
 
 bool load_device_list() {
     devices[0] = create_covox();
