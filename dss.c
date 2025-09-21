@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include "device.h"
 #include "hardware/pio.h"
+#include "hardware/irq.h"
 #include "dss.pio.h"
 
 #define LPT_BASE_PIN 1
@@ -13,10 +14,17 @@
 
 #define RINGBUFFER_SIZE 16
 
+pio_irq_source_t irq_sources[] = { 
+    pis_sm0_rx_fifo_not_empty, 
+    pis_sm1_rx_fifo_not_empty, 
+    pis_sm2_rx_fifo_not_empty, 
+    pis_sm3_rx_fifo_not_empty};
+
 // Variables for PIO - each device simulated has its own
 static PIO used_pio;
 static uint8_t used_sm;
 static uint used_offset;
+static uint8_t used_pio_irq;
 
 static uint32_t ringbuffer[RINGBUFFER_SIZE];
 static volatile uint8_t ringbuffer_head = 0;
@@ -46,11 +54,13 @@ void __isr ringbuffer_filler(void) {
 static void choose_sm(void) {
     used_pio = pio1;
     used_sm = pio_claim_unused_sm(used_pio, false);
+    used_pio_irq = PIO1_IRQ_0;
 
 #ifdef PICO_RP2350
     if (used_sm < 0 || !pio_can_add_program(used_pio, &dss_program)) { // If no free sm or memory on PIO1, try PIO2 (not on Pico1)
         used_pio = pio2;
         used_sm = pio_claim_unused_sm(used_pio, false);
+        used_pio_irq = PIO2_IRQ_0;
     }
 #endif
 }
@@ -81,6 +91,11 @@ bool load_dss(Device *self) {
 
     pio_sm_set_consecutive_pindirs(used_pio, used_sm, LPT_BASE_PIN, 8, false); // Sets pins in PIO to be inputs
 
+    irq_set_exclusive_handler(used_pio_irq, ringbuffer_filler);
+    irq_set_enabled(used_pio_irq, true);
+
+    pio_set_irq0_source_enabled(used_pio, irq_sources[used_sm], true);
+
     if (pio_sm_init(used_pio, used_sm, used_offset, &used_config) < 0) {
         return false;
     }
@@ -90,6 +105,9 @@ bool load_dss(Device *self) {
 }
 
 bool unload_dss(Device *self) {
+    pio_set_irq0_source_enabled(used_pio, irq_sources[used_sm], false);
+    irq_set_enabled(used_pio_irq, false);
+    irq_set_exclusive_handler(used_pio_irq, NULL);
     pio_sm_set_enabled(used_pio, used_sm, false);
     pio_remove_program_and_unclaim_sm(&dss_program, used_pio, used_sm, used_offset);
 
