@@ -38,15 +38,14 @@ bool load_device_list() {
 }
 
 // Changes simulation to next device in enum
-bool change_device(void) {
+void change_device(uint gpio, uint32_t events) {
     if (!devices[current_device]->unload_device(devices[current_device])) {
-        return false;
+        panic("Could not unload device /d\n", current_device);
     }
     current_device = (current_device + 1) % NUM_DEVICES;
     if (!devices[current_device]->load_device(devices[current_device])) {
-        return false;
+        panic("Could not load device /d\n", current_device);
     }
-    return true;
 }
 
 audio_format_t requested_format = {
