@@ -21,7 +21,7 @@
 // Time stored for software debounce
 volatile absolute_time_t last_change_press;
 
-#define NUM_DEVICES 3
+#define NUM_DEVICES 4
 Device *devices[NUM_DEVICES];
 uint8_t current_device = 0;
 
@@ -29,8 +29,8 @@ bool load_device_list() {
     devices[0] = create_covox();
     devices[1] = create_stereo();
     devices[2] = create_ftl();
-/*    devices[3] = create_dss();
-    devices[4] = create_opl2lpt();
+    devices[3] = create_dss();
+/*    devices[4] = create_opl2lpt();
     devices[5] = create_cmslpt();
     devices[6] = create_tndlpt();*/
 

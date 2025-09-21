@@ -48,8 +48,8 @@ typedef struct Device {
 Device *create_covox();
 Device *create_stereo();
 Device *create_ftl();
-/*Device *create_dss();
-Device *create_opl2lpt();
+Device *create_dss();
+/*Device *create_opl2lpt();
 Device *create_cmslpt();
 Device *create_tndlpt();*/
 
