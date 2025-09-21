@@ -12,6 +12,12 @@
 #define ACK_PIN 9
 #define SAMPLE_RATE 96000
 
+#define RINGBUFFER_SIZE 16
+
+static uint32_t ringbuffer[RINGBUFFER_SIZE];
+static volatile uint8_t ringbuffer_first = 0;
+static volatile uint8_t ringbuffer_last = 0;
+
 // Variables for PIO - each device simulated has its own
 static PIO used_pio;
 static uint8_t used_sm;
