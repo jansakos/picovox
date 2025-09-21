@@ -62,6 +62,7 @@ bool load_ftl(Device *self) {
     pio_sm_config used_config_detection = ftl_detection_program_get_default_config(detection_offset);
     sm_config_set_in_pins(&used_config_detection, LPT_SELIN);
     sm_config_set_out_pins(&used_config_detection, LPT_PAPEREND, 1);
+    sm_config_set_clkdiv(&used_config_detection, 10.0);
 
     for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 8; i++) { // Sets pins to use PIO
         pio_gpio_init(sound_pio, i);
