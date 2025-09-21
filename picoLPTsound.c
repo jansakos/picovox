@@ -10,13 +10,16 @@
 #define CHANNEL_COUNT 2
 
 // Button for changing the device (GPIO - ground)
-#define CHANGE_BUTTON 15
+#define CHANGE_BUTTON 17
 
 #include <stdio.h>
 #include <stdbool.h>
 #include "pico/stdlib.h"
 #include "pico/audio_i2s.h"
 #include "device.h"
+
+// Time stored for software debounce
+volatile absolute_time_t last_change_press;
 
 #define NUM_DEVICES 3
 Device *devices[NUM_DEVICES];
@@ -42,6 +45,12 @@ bool load_device_list() {
 
 // Changes simulation to next device in enum
 void change_device(uint gpio, uint32_t events) {
+
+    if (get_absolute_time() - last_change_press < 20000) {
+        return;
+    }
+    last_change_press = get_absolute_time();
+
     if (!devices[current_device]->unload_device(devices[current_device])) {
         panic("Could not unload device /d\n", current_device);
     }
@@ -97,6 +106,8 @@ void load_change_device_irq(void) {
     gpio_pull_up(CHANGE_BUTTON);
 
     gpio_set_irq_enabled_with_callback(CHANGE_BUTTON, GPIO_IRQ_EDGE_FALL, true, &change_device);
+
+    last_change_press = get_absolute_time();
 }
 
 int main()
