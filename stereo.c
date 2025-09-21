@@ -49,6 +49,8 @@ bool load_stereo(Device *self) {
 
     pio_sm_set_consecutive_pindirs(used_pio, used_sm, LPT_BASE_PIN, 9, false); // Sets pins in PIO to be inputs
 
+    gpio_pull_up(LPT_BASE_PIN); // Pullup for cases where channel switch is floating
+
     if (pio_sm_init(used_pio, used_sm, used_offset, &used_config) < 0) {
         return false;
     }
@@ -60,6 +62,8 @@ bool load_stereo(Device *self) {
 bool unload_stereo(Device *self) {
     pio_sm_set_enabled(used_pio, used_sm, false);
     pio_remove_program_and_unclaim_sm(&stereo_program, used_pio, used_sm, used_offset);
+
+    gpio_disable_pulls(LPT_BASE_PIN);
 
     for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 9; i++) {
         gpio_deinit(i);
@@ -74,7 +78,7 @@ size_t generate_stereo(Device *self, int16_t *left_sample, int16_t *right_sample
         }
         uint32_t raw_data = pio_sm_get(used_pio, used_sm);
         int16_t current_sample = (((raw_data >> 24) & 0xFF) - 128) << 8;
-        if (((raw_data >> 23) & 0x01) == 1) {
+        if (((raw_data >> 23) & 0x01) == 0) {
             *left_sample = current_sample;
         } else {
             *right_sample = current_sample;
