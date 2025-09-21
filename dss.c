@@ -14,15 +14,36 @@
 
 #define RINGBUFFER_SIZE 16
 
-static uint32_t ringbuffer[RINGBUFFER_SIZE];
-static volatile uint8_t ringbuffer_first = 0;
-static volatile uint8_t ringbuffer_last = 0;
-
 // Variables for PIO - each device simulated has its own
 static PIO used_pio;
 static uint8_t used_sm;
 static uint used_offset;
- 
+
+static uint32_t ringbuffer[RINGBUFFER_SIZE];
+static volatile uint8_t ringbuffer_head = 0;
+static volatile uint8_t ringbuffer_tail = 0;
+static bool ringbuffer_full = false;
+
+void __isr ringbuffer_filler(void) {
+    while (!pio_sm_is_rx_fifo_empty(used_pio, used_sm)) {
+        uint32_t given_data = pio_sm_get(used_pio, used_sm);
+
+        uint8_t next_index = (ringbuffer_head + 1) & (RINGBUFFER_SIZE - 1);
+        if (next_index != ringbuffer_tail) {
+            ringbuffer[ringbuffer_head] = given_data;
+            ringbuffer_head = next_index;
+        }
+
+        if (((ringbuffer_head + 1) & (RINGBUFFER_SIZE - 1)) == ringbuffer_tail) {
+            gpio_put(ACK_PIN, 1);
+            ringbuffer_full = true;
+        } elif (ringbuffer_full) {
+            gpio_put(ACK_PIN, 0);
+            ringbuffer_full = false;
+        }
+    }
+}
+
 static void choose_sm(void) {
     used_pio = pio1;
     used_sm = pio_claim_unused_sm(used_pio, false);
