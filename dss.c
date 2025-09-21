@@ -14,7 +14,9 @@
 
 #define RINGBUFFER_SIZE 16
 
-pio_irq_source_t irq_sources[] = { 
+#define SAMPLE_REPEAT_COUNT 14 // Each sample is generated 14 times -> frequency of 6,86 kHz (within 7kHz +- 5 % specs)
+
+pio_interrupt_source_t irq_sources[] = { 
     pis_sm0_rx_fifo_not_empty, 
     pis_sm1_rx_fifo_not_empty, 
     pis_sm2_rx_fifo_not_empty, 
@@ -26,6 +28,11 @@ static uint8_t used_sm;
 static uint used_offset;
 static uint8_t used_pio_irq;
 
+// Definitions for repeating the sample
+int16_t current_sample = 0;
+int8_t sample_used_times = 0;
+
+// Ringbuffer definitions
 static uint32_t ringbuffer[RINGBUFFER_SIZE];
 static volatile uint8_t ringbuffer_head = 0;
 static volatile uint8_t ringbuffer_tail = 0;
@@ -44,11 +51,31 @@ void __isr ringbuffer_filler(void) {
         if (((ringbuffer_head + 1) & (RINGBUFFER_SIZE - 1)) == ringbuffer_tail) {
             gpio_put(LPT_ACK_PIN, 1);
             ringbuffer_full = true;
-        } elif (ringbuffer_full) {
+        } else if (ringbuffer_full) {
             gpio_put(LPT_ACK_PIN, 0);
             ringbuffer_full = false;
         }
     }
+}
+
+bool ringbuffer_is_empty(void) {
+    return (ringbuffer_head == ringbuffer_tail) && !ringbuffer_full;
+}
+
+uint32_t ringbuffer_pop(void) {
+    if (ringbuffer_is_empty()) {
+        return 0;
+    }
+
+    uint32_t popped_sample = ringbuffer[ringbuffer_tail];
+    ringbuffer_tail = (ringbuffer_tail + 1) & (RINGBUFFER_SIZE - 1);
+
+    if (ringbuffer_full) {
+        ringbuffer_full = false;
+        gpio_put(LPT_ACK_PIN, 0);
+    }
+
+    return popped_sample;
 }
 
 static void choose_sm(void) {
@@ -119,14 +146,15 @@ bool unload_dss(Device *self) {
     return true;
 }
 
-// Each sample is generated 14 times -> frequency of 6,86 kHz (within 7kHz +- 5 % specs)
 size_t generate_dss(Device *self, int16_t *left_sample, int16_t *right_sample) {
-    while (pio_sm_is_rx_fifo_empty(used_pio, used_sm)) {
-        tight_loop_contents();
+    if (sample_used_times >= SAMPLE_REPEAT_COUNT) {
+        current_sample = (((ringbuffer_pop() >> 24) & 0xFF) - 128) << 8;
+        sample_used_times = 0;
     }
-    int16_t current_sample = (((pio_sm_get(used_pio, used_sm) >> 24) & 0xFF) - 128) << 8;
+
     *left_sample = current_sample;
     *right_sample = current_sample;
+    sample_used_times++;
     return 0;
 }
 
