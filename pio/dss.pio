@@ -1,8 +1,8 @@
 .program dss
 
 .wrap_target
-    wait 0 pin N
-    wait 1 pin N
+    wait 0 pin
+    wait 1 pin
     in pins, 8
     push block
 .wrap

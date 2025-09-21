@@ -3,13 +3,12 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include "device.h"
-#include "hardware/clocks.h"
 #include "hardware/pio.h"
 #include "dss.pio.h"
 
 #define LPT_BASE_PIN 1
-#define SELIN_PIN 11
-#define ACK_PIN 9
+#define LPT_SELIN_PIN 11
+#define LPT_ACK_PIN 9
 #define SAMPLE_RATE 96000
 
 #define RINGBUFFER_SIZE 16
@@ -35,10 +34,10 @@ void __isr ringbuffer_filler(void) {
         }
 
         if (((ringbuffer_head + 1) & (RINGBUFFER_SIZE - 1)) == ringbuffer_tail) {
-            gpio_put(ACK_PIN, 1);
+            gpio_put(LPT_ACK_PIN, 1);
             ringbuffer_full = true;
         } elif (ringbuffer_full) {
-            gpio_put(ACK_PIN, 0);
+            gpio_put(LPT_ACK_PIN, 0);
             ringbuffer_full = false;
         }
     }
@@ -70,11 +69,15 @@ bool load_dss(Device *self) {
     pio_sm_config used_config = dss_program_get_default_config(used_offset);
     sm_config_set_in_pins(&used_config, LPT_BASE_PIN);
     sm_config_set_fifo_join(&used_config, PIO_FIFO_JOIN_RX);
-    sm_config_set_clkdiv(&used_config, (((float) clock_get_hz(clk_sys)) / (SAMPLE_RATE * 2)));
+    sm_config_set_jmp_pin(&used_config, LPT_SELIN_PIN);
+    sm_config_set_clkdiv(&used_config, 10.0);
 
     for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 8; i++) { // Sets pins to use PIO
         pio_gpio_init(used_pio, i);
     }
+    pio_gpio_init(used_pio, LPT_SELIN_PIN);
+    gpio_init(LPT_ACK_PIN);
+    gpio_set_dir(LPT_ACK_PIN, true);
 
     pio_sm_set_consecutive_pindirs(used_pio, used_sm, LPT_BASE_PIN, 8, false); // Sets pins in PIO to be inputs
 
@@ -93,6 +96,8 @@ bool unload_dss(Device *self) {
     for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 8; i++) {
         gpio_deinit(i);
     }
+    gpio_deinit(LPT_ACK_PIN);
+    gpio_deinit(LPT_SELIN_PIN);
     return true;
 }
 
