@@ -24,13 +24,13 @@ pio_interrupt_source_t irq_sources[] = {
 
 // Variables for PIO - each device simulated has its own
 static PIO used_pio;
-static uint8_t used_sm;
-static uint used_offset;
-static uint8_t used_pio_irq;
+static int8_t used_sm;
+static int used_offset;
+static int8_t used_pio_irq;
 
 // Definitions for repeating the sample
 int16_t current_sample = 0;
-int8_t sample_used_times = 0;
+uint8_t sample_used_times = 0;
 
 // Ringbuffer definitions
 static uint32_t ringbuffer[RINGBUFFER_SIZE];

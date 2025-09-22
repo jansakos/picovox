@@ -21,9 +21,9 @@
 // Time stored for software debounce
 volatile absolute_time_t last_change_press;
 
-#define NUM_DEVICES 4
+#define NUM_DEVICES 3
 Device *devices[NUM_DEVICES];
-uint8_t current_device = 3;
+uint8_t current_device = 0;
 
 bool load_device_list() {
     devices[0] = create_covox();
@@ -51,13 +51,12 @@ void change_device(uint gpio, uint32_t events) {
     }
     last_change_press = get_absolute_time();
 
-    printf("Unloading device %d\n", current_device);
     if (!devices[current_device]->unload_device(devices[current_device])) {
-        panic("Could not unload device /d\n", current_device);
+        printf("Could not unload device %d\n", current_device);
     }
     current_device = (current_device + 1) % NUM_DEVICES;
     if (!devices[current_device]->load_device(devices[current_device])) {
-        panic("Could not load device /d\n", current_device);
+        printf("Could not load device %d\n", current_device);
     }
     printf("Switched to %d", current_device);
 }

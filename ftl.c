@@ -14,12 +14,12 @@
 
 // Variables for PIO - each device simulated has its own
 static PIO sound_pio;
-static uint8_t sound_sm;
-static uint sound_offset;
+static int8_t sound_sm;
+static int sound_offset;
 
 static PIO detection_pio;
-static uint8_t detection_sm;
-static uint detection_offset;
+static int8_t detection_sm;
+static int detection_offset;
 
 static void choose_sm(PIO *pio_to_assign, uint8_t *sm_to_assign, const pio_program_t *assigned_program) {
     *pio_to_assign = pio1;

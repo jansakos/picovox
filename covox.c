@@ -12,8 +12,8 @@
 
 // Variables for PIO - each device simulated has its own
 static PIO used_pio;
-static uint8_t used_sm;
-static uint used_offset;
+static int8_t used_sm;
+static int used_offset;
 
 static void choose_sm(void) {
     used_pio = pio1;
