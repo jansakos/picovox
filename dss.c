@@ -81,13 +81,13 @@ uint32_t ringbuffer_pop(void) {
 static void choose_sm(void) {
     used_pio = pio1;
     used_sm = pio_claim_unused_sm(used_pio, false);
-    used_pio_irq = PIO1_IRQ_0;
+    used_pio_irq = PIO1_IRQ_1;
 
 #ifdef PICO_RP2350
     if (used_sm < 0 || !pio_can_add_program(used_pio, &dss_program)) { // If no free sm or memory on PIO1, try PIO2 (not on Pico1)
         used_pio = pio2;
         used_sm = pio_claim_unused_sm(used_pio, false);
-        used_pio_irq = PIO2_IRQ_0;
+        used_pio_irq = PIO2_IRQ_1;
     }
 #endif
 }
@@ -133,9 +133,9 @@ bool load_dss(Device *self) {
 
 bool unload_dss(Device *self) {
     pio_sm_set_enabled(used_pio, used_sm, false);
-    irq_set_exclusive_handler(used_pio_irq, NULL);
     pio_set_irq0_source_enabled(used_pio, irq_sources[used_sm], false);
     irq_set_enabled(used_pio_irq, false);
+    irq_remove_handler(used_pio_irq, ringbuffer_filler);
     pio_remove_program_and_unclaim_sm(&dss_program, used_pio, used_sm, used_offset);
 
     for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 8; i++) {

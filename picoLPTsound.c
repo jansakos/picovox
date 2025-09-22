@@ -21,7 +21,7 @@
 // Time stored for software debounce
 volatile absolute_time_t last_change_press;
 
-#define NUM_DEVICES 3
+#define NUM_DEVICES 4
 Device *devices[NUM_DEVICES];
 uint8_t current_device = 0;
 

@@ -39,6 +39,7 @@
     "raspberry-pi-pico.ninjaPath": "${HOME}/.pico-sdk/ninja/v1.12.1/ninja",
     "files.associations": {
         "random": "c",
-        "algorithm": "c"
+        "algorithm": "c",
+        "irq.h": "c"
     }
 }
