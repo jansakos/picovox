@@ -64,7 +64,7 @@ bool ringbuffer_is_empty(void) {
 
 uint32_t ringbuffer_pop(void) {
     if (ringbuffer_is_empty()) {
-        return 0;
+        return 2147483648;
     }
 
     uint32_t popped_sample = ringbuffer[ringbuffer_tail];
@@ -107,7 +107,7 @@ bool load_dss(Device *self) {
     sm_config_set_in_pins(&used_config, LPT_BASE_PIN);
     sm_config_set_fifo_join(&used_config, PIO_FIFO_JOIN_RX);
     sm_config_set_jmp_pin(&used_config, LPT_SELIN_PIN);
-    sm_config_set_clkdiv(&used_config, 10.0);
+    sm_config_set_clkdiv(&used_config, 1.0);
 
     for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 8; i++) { // Sets pins to use PIO
         pio_gpio_init(used_pio, i);
@@ -132,10 +132,10 @@ bool load_dss(Device *self) {
 }
 
 bool unload_dss(Device *self) {
+    pio_sm_set_enabled(used_pio, used_sm, false);
+    irq_set_exclusive_handler(used_pio_irq, NULL);
     pio_set_irq0_source_enabled(used_pio, irq_sources[used_sm], false);
     irq_set_enabled(used_pio_irq, false);
-    irq_set_exclusive_handler(used_pio_irq, NULL);
-    pio_sm_set_enabled(used_pio, used_sm, false);
     pio_remove_program_and_unclaim_sm(&dss_program, used_pio, used_sm, used_offset);
 
     for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 8; i++) {

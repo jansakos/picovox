@@ -23,7 +23,7 @@ volatile absolute_time_t last_change_press;
 
 #define NUM_DEVICES 4
 Device *devices[NUM_DEVICES];
-uint8_t current_device = 0;
+uint8_t current_device = 3;
 
 bool load_device_list() {
     devices[0] = create_covox();
@@ -51,6 +51,7 @@ void change_device(uint gpio, uint32_t events) {
     }
     last_change_press = get_absolute_time();
 
+    printf("Unloading device %d\n", current_device);
     if (!devices[current_device]->unload_device(devices[current_device])) {
         panic("Could not unload device /d\n", current_device);
     }
