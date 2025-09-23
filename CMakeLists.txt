@@ -40,6 +40,9 @@ project(picoLPTsound C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
+# Include emu8950 library
+add_subdirectory(emu8950)
+
 # Add executable. Default name is the project name, version 0.1
 
 add_executable(picoLPTsound picoLPTsound.c covox.c stereo.c ftl.c dss.c opl2.c)
