@@ -1,6 +1,8 @@
 .program opl2
 
 .wrap_target
-    in pins, 8
+    wait 1 gpio 12
+    wait 0 gpio 12
+    in pins, 9
     push block
 .wrap
