@@ -82,7 +82,7 @@ bool unload_opl2(Device *self) {
         gpio_deinit(i);
     }
     gpio_deinit(LPT_INIT_PIN);
-    simulated_opl == NULL;
+    simulated_opl = NULL;
     return true;
 }
 
@@ -93,7 +93,7 @@ size_t generate_opl2(Device *self, int16_t *left_sample, int16_t *right_sample) 
 
     if (!pio_sm_is_rx_fifo_empty(used_pio, used_sm)) {
         uint16_t new_instruction = (pio_sm_get(used_pio, used_sm) >> 23);
-        if (new_instruction & 256 == 0) {
+        if ((new_instruction & 256) == 0) {
             register_address = new_instruction & 255;
         } else {
             OPL_writeIO(simulated_opl, register_address, new_instruction & 255);

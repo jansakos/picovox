@@ -21,7 +21,7 @@
 // Time stored for software debounce
 volatile absolute_time_t last_change_press;
 
-#define NUM_DEVICES 4
+#define NUM_DEVICES 5
 Device *devices[NUM_DEVICES];
 uint8_t current_device = 0;
 
@@ -29,13 +29,14 @@ bool load_device_list() {
     devices[0] = create_covox();
     devices[1] = create_stereo();
     devices[2] = create_ftl();
-    devices[3] = create_dss();
-    devices[4] = create_opl2();
+    devices[4] = create_dss();
+    devices[3] = create_opl2();
 /*    devices[5] = create_cms();
     devices[6] = create_tnd();*/
 
     for (int i = 0; i < NUM_DEVICES; i++) {
         if (devices[i] == NULL) {
+            sleep_ms(500);
             return false;
         }
     }
@@ -114,6 +115,7 @@ void load_change_device_irq(void) {
 int main()
 {
     stdio_init_all();
+    sleep_ms(5000);
 
     if (!load_device_list()) {
         return 1;
@@ -150,4 +152,5 @@ int main()
         buffer->sample_count = buffer->max_sample_count;
         give_audio_buffer(buffer_pool, buffer);
     }
+    
 }

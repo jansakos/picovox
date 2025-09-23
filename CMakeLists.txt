@@ -45,7 +45,7 @@ add_subdirectory(emu8950)
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(picoLPTsound picoLPTsound.c covox.c stereo.c ftl.c dss.c opl2.c)
+add_executable(picoLPTsound picoLPTsound.c covox.c stereo.c ftl.c dss.c opl2.c emu8950/emu8950.c emu8950/emuadpcm.c)
 
 # Add all PIOs to compile
 pico_generate_pio_header(${PROJECT_NAME}
