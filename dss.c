@@ -81,13 +81,13 @@ uint32_t ringbuffer_pop(void) {
 static void choose_sm(void) {
     used_pio = pio1;
     used_sm = pio_claim_unused_sm(used_pio, false);
-    used_pio_irq = PIO1_IRQ_1;
+    used_pio_irq = PIO1_IRQ_0;
 
 #ifdef PICO_RP2350
     if (used_sm < 0 || !pio_can_add_program(used_pio, &dss_program)) { // If no free sm or memory on PIO1, try PIO2 (not on Pico1)
         used_pio = pio2;
         used_sm = pio_claim_unused_sm(used_pio, false);
-        used_pio_irq = PIO2_IRQ_1;
+        used_pio_irq = PIO2_IRQ_0;
     }
 #endif
 }
