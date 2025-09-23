@@ -8,15 +8,17 @@
 #include "opl2.pio.h"
 #include "emu8950/emu8950.h"
 
-#define LPT_BASE_PIN 1
-#define LPT_INIT 12
-#define LPT_STROBE 0
+#define LPT_BASE_PIN 0
+#define LPT_INIT_PIN 12
 #define SAMPLE_RATE 96000
 
 // Variables for PIO - each device simulated has its own
 static PIO used_pio;
 static int8_t used_sm;
 static int used_offset;
+
+OPL *simulated_opl = NULL;
+uint32_t register_address = 0;
 
 static void choose_sm(void) {
     used_pio = pio1;
@@ -43,38 +45,62 @@ bool load_opl2(Device *self) {
 
     pio_sm_config used_config = opl2_program_get_default_config(used_offset);
     sm_config_set_in_pins(&used_config, LPT_BASE_PIN);
+    sm_config_set_jmp_pin(&used_config, LPT_INIT_PIN);
     sm_config_set_fifo_join(&used_config, PIO_FIFO_JOIN_RX);
-    sm_config_set_clkdiv(&used_config, (((float) clock_get_hz(clk_sys)) / (SAMPLE_RATE * 2)));
 
-    for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 8; i++) { // Sets pins to use PIO
+    for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 9; i++) { // Sets pins to use PIO
         pio_gpio_init(used_pio, i);
     }
+    pio_gpio_init(used_pio, LPT_INIT_PIN);
 
-    pio_sm_set_consecutive_pindirs(used_pio, used_sm, LPT_BASE_PIN, 8, false); // Sets pins in PIO to be inputs
+    pio_sm_set_consecutive_pindirs(used_pio, used_sm, LPT_BASE_PIN, 9, false); // Sets pins in PIO to be inputs
 
     if (pio_sm_init(used_pio, used_sm, used_offset, &used_config) < 0) {
         return false;
     }
 
     pio_sm_set_enabled(used_pio, used_sm, true);
+    simulated_opl = OPL_new(clock_get_hz(clk_sys), SAMPLE_RATE);
+    if (simulated_opl == NULL) {
+        return false;
+    }
+
+    OPL_setChipType(simulated_opl, 2); // Type 2 is YM3812
     return true;
 }
 
 bool unload_opl2(Device *self) {
+    if (simulated_opl == NULL) {
+        return true;
+    }
+
+    OPL_delete(simulated_opl);
     pio_sm_set_enabled(used_pio, used_sm, false);
     pio_remove_program_and_unclaim_sm(&opl2_program, used_pio, used_sm, used_offset);
 
-    for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 8; i++) {
+    for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 9; i++) {
         gpio_deinit(i);
     }
+    gpio_deinit(LPT_INIT_PIN);
+    simulated_opl == NULL;
     return true;
 }
 
 size_t generate_opl2(Device *self, int16_t *left_sample, int16_t *right_sample) {
-    while (pio_sm_is_rx_fifo_empty(used_pio, used_sm)) {
-        tight_loop_contents();
+    if (simulated_opl == NULL) {
+        return 0;
     }
-    int16_t current_sample = (((pio_sm_get(used_pio, used_sm) >> 24) & 0xFF) - 128) << 8;
+
+    if (!pio_sm_is_rx_fifo_empty(used_pio, used_sm)) {
+        uint16_t new_instruction = (pio_sm_get(used_pio, used_sm) >> 23);
+        if (new_instruction & 256 == 0) {
+            register_address = new_instruction & 255;
+        } else {
+            OPL_writeIO(simulated_opl, register_address, new_instruction & 255);
+        }
+    }
+
+    int16_t current_sample = OPL_calc(simulated_opl);
     *left_sample = current_sample;
     *right_sample = current_sample;
     return 0;
