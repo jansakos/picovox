@@ -32,7 +32,7 @@ static int8_t used_pio_irq;
 
 // Definitions for repeating the sample
 repeating_timer_t dss_buffer_timer;
-int16_t current_sample = 0;
+static int16_t current_sample = 0;
 int8_t sample_used = 0;
 uint32_t raw_sample = 0;
 bool need_faster = true;
@@ -178,9 +178,10 @@ bool unload_dss(Device *self) {
 
 size_t generate_dss(Device *self, int16_t *left_sample, int16_t *right_sample) {
     if (sample_used >= SAMPLES_REPEAT || (need_faster && sample_used >= SAMPLES_REPEAT - 1)) {
-        sleep_us(105);
         if (ringbuffer_read(&raw_sample)) {
             current_sample = (((raw_sample >> 24) & 0xFF) - 128) << 8;
+        } else {
+            sleep_us(400); // Ugly timing correction - probably some calculation should be made for it to be precise
         }
     }
 
