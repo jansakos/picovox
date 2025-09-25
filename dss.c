@@ -6,6 +6,7 @@
 #include "hardware/pio.h"
 #include "hardware/irq.h"
 #include "pico/time.h"
+#include "pico/stdlib.h"
 #include "dss.pio.h"
 
 #define LPT_BASE_PIN 1
@@ -34,6 +35,7 @@ repeating_timer_t dss_buffer_timer;
 int16_t current_sample = 0;
 int8_t sample_used = 0;
 uint32_t raw_sample = 0;
+bool need_faster = true;
 
 // Ringbuffer definitions
 static uint32_t ringbuffer[RINGBUFFER_SIZE];
@@ -64,6 +66,9 @@ bool ringbuffer_is_empty(void) {
 }
 
 uint32_t ringbuffer_pop(void) {
+    if (ringbuffer_is_empty()) {
+        return 2147483648;
+    }
     uint32_t popped_sample = ringbuffer[ringbuffer_tail];
     ringbuffer_tail = (ringbuffer_tail + 1) & (RINGBUFFER_SIZE - 1);
 
@@ -77,17 +82,23 @@ uint32_t ringbuffer_pop(void) {
 
 bool ringbuffer_read(uint32_t *sample) {
     if (ringbuffer_is_empty()) {
+        sample_used = 0;
         *sample = 2147483648;
         return true;
     }
 
     if (ringbuffer_reader == ringbuffer_head) {
+        need_faster = false;
         return false;
+    }
+
+    if (ringbuffer_reader == ringbuffer_tail) {
+        need_faster = true;
     }
 
     *sample = ringbuffer[ringbuffer_reader];
     ringbuffer_reader = (ringbuffer_reader + 1) & (RINGBUFFER_SIZE - 1);
-
+    sample_used = 0;
     return true;
 }
 
@@ -166,10 +177,10 @@ bool unload_dss(Device *self) {
 }
 
 size_t generate_dss(Device *self, int16_t *left_sample, int16_t *right_sample) {
-    if (sample_used >= SAMPLES_REPEAT) {
+    if (sample_used >= SAMPLES_REPEAT || (need_faster && sample_used >= SAMPLES_REPEAT - 1)) {
+        sleep_us(105);
         if (ringbuffer_read(&raw_sample)) {
             current_sample = (((raw_sample >> 24) & 0xFF) - 128) << 8;
-            sample_used = 0;
         }
     }
 
