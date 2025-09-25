@@ -51,7 +51,7 @@ enum __OPL_TYPE { TYPE_Y8950 = 0, TYPE_YM3526, TYPE_YM3812, TYPE_MAX };
 
 /* clang-format off */
 /* exp_table[x] = round((exp2((double)x / 256.0) - 1) * 1024) */
-static uint16_t exp_table[256] = {
+static const uint16_t exp_table[256] = {
 0,    3,    6,    8,    11,   14,   17,   20,   22,   25,   28,   31,   34,   37,   40,   42,
 45,   48,   51,   54,   57,   60,   63,   66,   69,   72,   75,   78,   81,   84,   87,   90,
 93,   96,   99,   102,  105,  108,  111,  114,  117,  120,  123,  126,  130,  133,  136,  139,
@@ -70,7 +70,7 @@ static uint16_t exp_table[256] = {
 937,  942,  948,  953,  959,  964,  969,  975,  980,  986,  991,  996, 1002, 1007, 1013, 1018
 };
 /* logsin_table[x] = round(-log2(sin((x + 0.5) * PI / (PG_WIDTH / 4) / 2)) * 256) */
-static uint16_t logsin_table[PG_WIDTH / 4] = {
+static const uint16_t logsin_table[PG_WIDTH / 4] = {
 2137, 1731, 1543, 1419, 1326, 1252, 1190, 1137, 1091, 1050, 1013, 979,  949,  920,  894,  869, 
 846,  825,  804,  785,  767,  749,  732,  717,  701,  687,  672,  659,  646,  633,  621,  609, 
 598,  587,  576,  566,  556,  546,  536,  527,  518,  509,  501,  492,  484,  476,  468,  461,
@@ -99,7 +99,7 @@ static uint16_t wave_table_map[4][PG_WIDTH];
 #define PM_DP_WIDTH (1 << PM_DP_BITS)
 
 /* offset to fnum, rough approximation of 14 cents depth. */
-static int8_t pm_table[8][PM_PG_WIDTH] = {
+static const int8_t pm_table[8][PM_PG_WIDTH] = {
     {0, 0, 0, 0, 0, 0, 0, 0},    // fnum = 000xxxxx
     {0, 0, 1, 0, 0, 0, -1, 0},   // fnum = 001xxxxx
     {0, 1, 2, 1, 0, -1, -2, -1}, // fnum = 010xxxxx
@@ -113,7 +113,7 @@ static int8_t pm_table[8][PM_PG_WIDTH] = {
 /* amplitude lfo table */
 /* The following envelop pattern is verified on real YM2413. */
 /* each element repeates 64 cycles */
-static uint8_t am_table[210] = {0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,  1,  1,  1,  1,  //
+static const uint8_t am_table[210] = {0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,  1,  1,  1,  1,  //
                                 2,  2,  2,  2,  2,  2,  2,  2,  3,  3,  3,  3,  3,  3,  3,  3,  //
                                 4,  4,  4,  4,  4,  4,  4,  4,  5,  5,  5,  5,  5,  5,  5,  5,  //
                                 6,  6,  6,  6,  6,  6,  6,  6,  7,  7,  7,  7,  7,  7,  7,  7,  //
@@ -130,13 +130,13 @@ static uint8_t am_table[210] = {0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,  
                                 1,  1,  1,  1,  1,  1,  1,  1,  0,  0,  0,  0,  0,  0,  0};
 
 /* envelope decay increment step table */
-static uint8_t eg_step_tables[4][8] = {
+static const uint8_t eg_step_tables[4][8] = {
     {0, 1, 0, 1, 0, 1, 0, 1},
     {0, 1, 0, 1, 1, 1, 0, 1},
     {0, 1, 1, 1, 0, 1, 1, 1},
     {0, 1, 1, 1, 1, 1, 1, 1},
 };
-static uint8_t eg_step_tables_fast[4][8] = {
+static const uint8_t eg_step_tables_fast[4][8] = {
     {1, 1, 1, 1, 1, 1, 1, 1},
     {1, 1, 1, 2, 1, 1, 1, 2},
     {1, 2, 1, 2, 1, 2, 1, 2},
@@ -147,7 +147,7 @@ static uint32_t ml_table[16] = {1,     1 * 2, 2 * 2,  3 * 2,  4 * 2,  5 * 2,  6 
                                 8 * 2, 9 * 2, 10 * 2, 10 * 2, 12 * 2, 12 * 2, 15 * 2, 15 * 2};
 
 #define dB2(x) ((x) * 2)
-static double kl_table[16] = {dB2(0.000),  dB2(9.000),  dB2(12.000), dB2(13.875), dB2(15.000), dB2(16.125),
+static const double kl_table[16] = {dB2(0.000),  dB2(9.000),  dB2(12.000), dB2(13.875), dB2(15.000), dB2(16.125),
                               dB2(16.875), dB2(17.625), dB2(18.000), dB2(18.750), dB2(19.125), dB2(19.500),
                               dB2(19.875), dB2(20.250), dB2(20.625), dB2(21.000)};
 

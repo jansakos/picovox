@@ -68,7 +68,8 @@ target_link_libraries(picoLPTsound
         pico_stdlib
         hardware_pio
         hardware_clocks
-        pico_audio_i2s )
+        pico_audio_i2s 
+        pico_multicore )
 
 # Add the standard include files to the build
 target_include_directories(picoLPTsound PRIVATE
