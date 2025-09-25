@@ -15,6 +15,8 @@
 
 #define RINGBUFFER_SIZE 16
 
+#define SAMPLES_REPEAT 14 // Approximation of 7kHz - frequency of undestructive reading
+
 pio_interrupt_source_t irq_sources[] = { 
     pis_sm0_rx_fifo_not_empty, 
     pis_sm1_rx_fifo_not_empty, 
@@ -30,11 +32,14 @@ static int8_t used_pio_irq;
 // Definitions for repeating the sample
 repeating_timer_t dss_buffer_timer;
 int16_t current_sample = 0;
+int8_t sample_used = 0;
+uint32_t raw_sample = 0;
 
 // Ringbuffer definitions
 static uint32_t ringbuffer[RINGBUFFER_SIZE];
 static volatile uint8_t ringbuffer_head = 0;
 static volatile uint8_t ringbuffer_tail = 0;
+static volatile uint8_t ringbuffer_reader = 0;
 static bool ringbuffer_full = false;
 
 void __isr ringbuffer_filler(void) {
@@ -59,10 +64,6 @@ bool ringbuffer_is_empty(void) {
 }
 
 uint32_t ringbuffer_pop(void) {
-    if (ringbuffer_is_empty()) {
-        return 2147483648;
-    }
-
     uint32_t popped_sample = ringbuffer[ringbuffer_tail];
     ringbuffer_tail = (ringbuffer_tail + 1) & (RINGBUFFER_SIZE - 1);
 
@@ -72,6 +73,22 @@ uint32_t ringbuffer_pop(void) {
     }
 
     return popped_sample;
+}
+
+bool ringbuffer_read(uint32_t *sample) {
+    if (ringbuffer_is_empty()) {
+        *sample = 2147483648;
+        return true;
+    }
+
+    if (ringbuffer_reader == ringbuffer_head) {
+        return false;
+    }
+
+    *sample = ringbuffer[ringbuffer_reader];
+    ringbuffer_reader = (ringbuffer_reader + 1) & (RINGBUFFER_SIZE - 1);
+
+    return true;
 }
 
 bool new_sample(repeating_timer_t *timer_for_buffer) {
@@ -149,8 +166,16 @@ bool unload_dss(Device *self) {
 }
 
 size_t generate_dss(Device *self, int16_t *left_sample, int16_t *right_sample) {
+    if (sample_used >= SAMPLES_REPEAT) {
+        if (ringbuffer_read(&raw_sample)) {
+            current_sample = (((raw_sample >> 24) & 0xFF) - 128) << 8;
+            sample_used = 0;
+        }
+    }
+
     *left_sample = current_sample;
     *right_sample = current_sample;
+    sample_used++;
     return 0;
 }
 
