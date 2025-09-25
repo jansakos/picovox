@@ -1,7 +1,6 @@
 #ifndef _EMU8950_H_
 #define _EMU8950_H_
 
-#include "emuadpcm.h"
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -83,7 +82,6 @@ typedef struct __OPL_SLOT {
 } OPL_SLOT;
 
 typedef struct __OPL {
-  OPL_ADPCM *adpcm;
   uint32_t clk;
   uint32_t rate;
 
@@ -195,11 +193,6 @@ void OPL_writeReg(OPL *opl, uint32_t reg, uint8_t val);
  */
 int16_t OPL_calc(OPL *opl);
 
-/**
- * Calulate stereo sample
- */
-void OPL_calcStereo(OPL *opl, int32_t out[2]);
-
 /** 
  *  Set channel mask 
  *  @param mask mask flag: OPL_MASK_* can be used.
@@ -231,8 +224,6 @@ uint8_t OPL_readIO(OPL *opl);
  * +-------- D7: IRQ
  */
 uint8_t OPL_status(OPL *opl);
-
-void OPL_writeADPCMData(OPL *opl, uint8_t type, uint32_t start, uint32_t length, const uint8_t *data);
 
 /* for compatibility */
 #define OPL_set_rate OPL_setRate

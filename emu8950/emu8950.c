@@ -375,39 +375,6 @@ static void initializeTables() {
 #define CAR(o, x) (&(o)->slot[((x) << 1) | 1])
 #define BIT(s, b) (((s) >> (b)) & 1)
 
-#if OPL_DEBUG
-static void _debug_print_patch(OPL_SLOT *slot) {
-  OPL_PATCH *p = slot->patch;
-  printf("[slot#%d am:%d pm:%d eg:%d kr:%d ml:%d kl:%d tl:%d ws:%d fb:%d A:%d D:%d S:%d R:%d]\n", slot->number, //
-         p->AM, p->PM, p->EG, p->KR, p->ML,                                                                     //
-         p->KL, p->TL, p->WS, p->FB,                                                                            //
-         p->AR, p->DR, p->SL, p->RR);
-}
-
-static char *_debug_eg_state_name(OPL_SLOT *slot) {
-  switch (slot->eg_state) {
-  case ATTACK:
-    return "attack";
-  case DECAY:
-    return "decay";
-  case SUSTAIN:
-    return "sustain";
-  case RELEASE:
-    return "release";
-  default:
-    return "unknown";
-  }
-}
-
-static INLINE void _debug_print_slot_info(OPL_SLOT *slot) {
-  char *name = _debug_eg_state_name(slot);
-  _debug_print_patch(slot);
-  printf("[slot#%d state:%s fnum:%03x rate:%d-%d]\n", slot->number, name, slot->blk_fnum, slot->eg_rate_h,
-         slot->eg_rate_l);
-  fflush(stdout);
-}
-#endif
-
 static INLINE int get_parameter_rate(OPL_SLOT *slot) {
   switch (slot->eg_state) {
   case ATTACK:
@@ -468,13 +435,6 @@ static void commit_slot_update(OPL_SLOT *slot, uint8_t notesel) {
       }
     }
   }
-
-#if OPL_DEBUG
-  if (slot->last_eg_state != slot->eg_state) {
-    _debug_print_slot_info(slot);
-    slot->last_eg_state = slot->eg_state;
-  }
-#endif
 
   slot->update_requests = 0;
 }
@@ -953,11 +913,6 @@ static void update_output(OPL *opl) {
     }
   }
   update_noise(opl, 2);
-
-  /* ADPCM */
-  if (opl->adpcm != NULL && !(opl->mask & OPL_MASK_ADPCM)) {
-    out[14] = OPL_ADPCM_calc(opl->adpcm);
-  }
 }
 
 INLINE static void mix_output(OPL *opl) {
@@ -970,22 +925,6 @@ INLINE static void mix_output(OPL *opl) {
     OPL_RateConv_putData(opl->conv, 0, out);
   } else {
     opl->mix_out[0] = out;
-  }
-}
-
-INLINE static void mix_output_stereo(OPL *opl) {
-  int16_t *out = opl->mix_out;
-  int i;
-  out[0] = out[1] = 0;
-  for (i = 0; i < 15; i++) {
-    if (opl->pan[i] & 2)
-      out[0] += (int16_t)(opl->ch_out[i] * opl->pan_fine[i][0]);
-    if (opl->pan[i] & 1)
-      out[1] += (int16_t)(opl->ch_out[i] * opl->pan_fine[i][1]);
-  }
-  if (opl->conv) {
-    OPL_RateConv_putData(opl->conv, 0, out[0]);
-    OPL_RateConv_putData(opl->conv, 1, out[1]);
   }
 }
 
@@ -1006,7 +945,6 @@ OPL *OPL_new(uint32_t clk, uint32_t rate) {
   if (opl == NULL)
     return NULL;
 
-  opl->adpcm = NULL;
   opl->clk = clk;
   opl->rate = rate;
   opl->mask = 0;
@@ -1027,10 +965,6 @@ void OPL_delete(OPL *opl) {
   if (opl->conv) {
     OPL_RateConv_delete(opl->conv);
     opl->conv = NULL;
-  }
-  if (opl->adpcm) {
-    OPL_ADPCM_delete(opl->adpcm);
-    opl->adpcm = NULL;
   }
   free(opl);
 }
@@ -1054,22 +988,6 @@ static void reset_rate_conversion_params(OPL *opl) {
 
   if (opl->conv) {
     OPL_RateConv_reset(opl->conv);
-  }
-}
-
-void refresh_adpcm_object(OPL *opl) {
-  if (opl->chip_type == TYPE_Y8950) {
-    if (opl->adpcm == NULL) {
-      opl->adpcm = OPL_ADPCM_new(opl->clk);
-    }
-  } else {
-    if (opl->adpcm != NULL) {
-      free(opl->adpcm);
-      opl->adpcm = NULL;
-    }
-  }
-  if (opl->adpcm != NULL) {
-    OPL_ADPCM_reset(opl->adpcm);
   }
 }
 
@@ -1124,8 +1042,6 @@ void OPL_reset(OPL *opl) {
   for (i = 0; i < 15; i++) {
     opl->ch_out[i] = 0;
   }
-
-  refresh_adpcm_object(opl);
 }
 
 void OPL_setRate(OPL *opl, uint32_t rate) {
@@ -1138,7 +1054,6 @@ void OPL_setQuality(OPL *opl, uint8_t q) {}
 void OPL_setChipType(OPL *opl, uint8_t type) {
   if (type < TYPE_MAX) {
     opl->chip_type = type;
-    refresh_adpcm_object(opl);
   }
 }
 
@@ -1169,22 +1084,6 @@ int16_t OPL_calc(OPL *opl) {
   return opl->mix_out[0];
 }
 
-void OPL_calcStereo(OPL *opl, int32_t out[2]) {
-  while (opl->out_step > opl->out_time) {
-    opl->out_time += opl->inp_step;
-    update_output(opl);
-    mix_output_stereo(opl);
-  }
-  opl->out_time -= opl->out_step;
-  if (opl->conv) {
-    out[0] = OPL_RateConv_getData(opl->conv, 0);
-    out[1] = OPL_RateConv_getData(opl->conv, 1);
-  } else {
-    out[0] = opl->mix_out[0];
-    out[1] = opl->mix_out[1];
-  }
-}
-
 uint32_t OPL_setMask(OPL *opl, uint32_t mask) {
   uint32_t ret;
 
@@ -1211,7 +1110,7 @@ void OPL_writeReg(OPL *opl, uint32_t reg, uint8_t data) {
 
   int32_t s, c;
 
-  static int32_t stbl[32] = {0,  2,  4,  1,  3,  5,  -1, -1, 6,  8,  10, 7,  9,  11, -1, -1,
+  static const int32_t stbl[32] = {0,  2,  4,  1,  3,  5,  -1, -1, 6,  8,  10, 7,  9,  11, -1, -1,
                              12, 14, 16, 13, 15, 17, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
 
   reg = reg & 0xff;
@@ -1220,9 +1119,6 @@ void OPL_writeReg(OPL *opl, uint32_t reg, uint8_t data) {
     // IRQ RESET
     opl->status = 0;
     opl->reg[0x04] &= 0x7f;
-    if (opl->adpcm) {
-      OPL_ADPCM_resetStatus(opl->adpcm);
-    }
     return;
   }
 
@@ -1246,10 +1142,6 @@ void OPL_writeReg(OPL *opl, uint32_t reg, uint8_t data) {
     if (reg == 0x08) {
       opl->csm_mode = (data >> 7) & 1;
       opl->notesel = (data >> 6) & 1;
-    }
-
-    if (opl->adpcm != NULL && opl->chip_type == TYPE_Y8950) {
-      OPL_ADPCM_writeReg(opl->adpcm, reg, data);
     }
 
   } else if (0x20 <= reg && reg < 0x40) {
@@ -1332,24 +1224,10 @@ uint8_t OPL_readIO(OPL *opl) { return opl->reg[opl->adr]; }
 uint8_t OPL_status(OPL *opl) {
   uint8_t status = opl->status;
 
-  if (opl->adpcm) {
-    status |= OPL_ADPCM_status(opl->adpcm);
-  }
-
   status &= ~(opl->reg[0x04] & 0x78); // IRQ MASK
 
   if (status & 0x78) {
     return status | 0x80; // IRQ=1
   }
   return status & 0x7f; // IRQ = 0
-}
-
-void OPL_writeADPCMData(OPL *opl, uint8_t type, uint32_t start, uint32_t length, const uint8_t *data) {
-  if (opl->adpcm != NULL) {
-    if (type == 0) {
-      OPL_ADPCM_writeRAM(opl->adpcm, start, length, data);
-    } else {
-      OPL_ADPCM_writeROM(opl->adpcm, start, length, data);
-    }
-  }
 }
