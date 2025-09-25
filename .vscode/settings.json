@@ -40,6 +40,8 @@
     "files.associations": {
         "random": "c",
         "algorithm": "c",
-        "irq.h": "c"
+        "irq.h": "c",
+        "emu8950.h": "c",
+        "timer.h": "c"
     }
 }

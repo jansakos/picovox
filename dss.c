@@ -5,6 +5,7 @@
 #include "device.h"
 #include "hardware/pio.h"
 #include "hardware/irq.h"
+#include "pico/time.h"
 #include "dss.pio.h"
 
 #define LPT_BASE_PIN 1
@@ -13,8 +14,6 @@
 #define SAMPLE_RATE 96000
 
 #define RINGBUFFER_SIZE 16
-
-#define SAMPLE_REPEAT_COUNT 14 // Each sample is generated 14 times -> frequency of 6,86 kHz (within 7kHz +- 5 % specs)
 
 pio_interrupt_source_t irq_sources[] = { 
     pis_sm0_rx_fifo_not_empty, 
@@ -29,8 +28,8 @@ static int used_offset;
 static int8_t used_pio_irq;
 
 // Definitions for repeating the sample
+repeating_timer_t dss_buffer_timer;
 int16_t current_sample = 0;
-uint8_t sample_used_times = 0;
 
 // Ringbuffer definitions
 static uint32_t ringbuffer[RINGBUFFER_SIZE];
@@ -51,9 +50,6 @@ void __isr ringbuffer_filler(void) {
         if (((ringbuffer_head + 1) & (RINGBUFFER_SIZE - 1)) == ringbuffer_tail) {
             gpio_put(LPT_ACK_PIN, 1);
             ringbuffer_full = true;
-        } else if (ringbuffer_full) {
-            gpio_put(LPT_ACK_PIN, 0);
-            ringbuffer_full = false;
         }
     }
 }
@@ -76,6 +72,11 @@ uint32_t ringbuffer_pop(void) {
     }
 
     return popped_sample;
+}
+
+bool new_sample(repeating_timer_t *timer_for_buffer) {
+    current_sample = (((ringbuffer_pop() >> 24) & 0xFF) - 128) << 8;
+    return true;
 }
 
 static void choose_sm(void) {
@@ -107,7 +108,6 @@ bool load_dss(Device *self) {
     sm_config_set_in_pins(&used_config, LPT_BASE_PIN);
     sm_config_set_fifo_join(&used_config, PIO_FIFO_JOIN_RX);
     sm_config_set_jmp_pin(&used_config, LPT_SELIN_PIN);
-    sm_config_set_clkdiv(&used_config, 1.0);
 
     for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 8; i++) { // Sets pins to use PIO
         pio_gpio_init(used_pio, i);
@@ -128,6 +128,8 @@ bool load_dss(Device *self) {
     }
 
     pio_sm_set_enabled(used_pio, used_sm, true);
+
+    add_repeating_timer_us(1000000 / 7000, new_sample, NULL, &dss_buffer_timer);
     return true;
 }
 
@@ -147,14 +149,8 @@ bool unload_dss(Device *self) {
 }
 
 size_t generate_dss(Device *self, int16_t *left_sample, int16_t *right_sample) {
-    if (sample_used_times >= SAMPLE_REPEAT_COUNT) {
-        current_sample = (((ringbuffer_pop() >> 24) & 0xFF) - 128) << 8;
-        sample_used_times = 0;
-    }
-
     *left_sample = current_sample;
     *right_sample = current_sample;
-    sample_used_times++;
     return 0;
 }
 

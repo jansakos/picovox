@@ -5,7 +5,7 @@
 #define PICO_AUDIO_PIO 0
 #define PICO_AUDIO_DMA_IRQ 1
 #define SAMPLES_PER_BUFFER 512
-#define NUM_BUFFERS 8
+#define NUM_BUFFERS 10
 #define SAMPLE_RATE 96000
 #define CHANNEL_COUNT 2
 
@@ -23,20 +23,19 @@ volatile absolute_time_t last_change_press;
 
 #define NUM_DEVICES 5
 Device *devices[NUM_DEVICES];
-uint8_t current_device = 0;
+uint8_t current_device = 3;
 
 bool load_device_list() {
     devices[0] = create_covox();
     devices[1] = create_stereo();
     devices[2] = create_ftl();
-    devices[4] = create_dss();
-    devices[3] = create_opl2();
+    devices[3] = create_dss();
+    devices[4] = create_opl2();
 /*    devices[5] = create_cms();
     devices[6] = create_tnd();*/
 
     for (int i = 0; i < NUM_DEVICES; i++) {
         if (devices[i] == NULL) {
-            sleep_ms(500);
             return false;
         }
     }
@@ -54,10 +53,12 @@ void change_device(uint gpio, uint32_t events) {
 
     if (!devices[current_device]->unload_device(devices[current_device])) {
         printf("Could not unload device %d\n", current_device);
+        sleep_ms(1000);
     }
     current_device = (current_device + 1) % NUM_DEVICES;
     if (!devices[current_device]->load_device(devices[current_device])) {
         printf("Could not load device %d\n", current_device);
+        sleep_ms(1000);
     }
     printf("Switched to %d", current_device);
 }
@@ -115,7 +116,7 @@ void load_change_device_irq(void) {
 int main()
 {
     stdio_init_all();
-    sleep_ms(5000);
+    sleep_ms(1000);
 
     if (!load_device_list()) {
         return 1;
