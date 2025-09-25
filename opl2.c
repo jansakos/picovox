@@ -24,15 +24,21 @@ static int used_offset;
 volatile bool stop_core1 = false;
 
 OPL *simulated_opl;
-uint32_t register_address = 0;
-static volatile int16_t current_sample = 0;
+volatile uint32_t register_address = 0;
+volatile int16_t sample_from_core1 = 0;
+volatile uint8_t value_for_reg = 0;
+volatile bool should_read = false;
 
 void core1_operation(void) {
     simulated_opl = OPL_new(3579545, 49715);
     OPL_setChipType(simulated_opl, 2); // Type 2 is YM3812*/
 
     while (!stop_core1) {
-        current_sample = OPL_calc(simulated_opl);
+        if (should_read) {
+            should_read = false;
+            OPL_writeReg(simulated_opl, register_address, value_for_reg);
+        }
+        sample_from_core1 = OPL_calc(simulated_opl);
     }
     OPL_delete(simulated_opl);
 }
@@ -99,12 +105,13 @@ size_t generate_opl2(Device *self, int16_t *left_sample, int16_t *right_sample) 
         if ((new_instruction & 256) == 0) {
             register_address = new_instruction & 255;
         } else {
-            //OPL_writeIO(simulated_opl, register_address, new_instruction & 255);
+            value_for_reg = new_instruction & 255;
+            should_read = true;
         }
     }
 
-    *left_sample = current_sample;
-    *right_sample = current_sample;
+    *left_sample = sample_from_core1;
+    *right_sample = *left_sample;
     return 0;
 }
 
