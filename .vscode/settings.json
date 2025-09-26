@@ -43,6 +43,7 @@
         "irq.h": "c",
         "emu8950.h": "c",
         "timer.h": "c",
-        "cstdint": "c"
+        "cstdint": "c",
+        "functional": "c"
     }
 }

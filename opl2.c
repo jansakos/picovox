@@ -8,6 +8,7 @@
 #include "hardware/pio.h"
 #include "pico/multicore.h"
 #include "opl2.pio.h"
+#include "pico/time.h"
 
 #include "pico/stdlib.h"
 
@@ -42,11 +43,11 @@ bool audiobuffer_is_empty(void) {
     return (audiobuffer_head == audiobuffer_tail) && !audiobuffer_full;
 }
 
-uint32_t audiobuffer_pop(void) {
+int16_t audiobuffer_pop(void) {
     if (audiobuffer_is_empty()) {
         return 0;
     }
-    uint32_t popped_sample = audiobuffer[audiobuffer_tail];
+    int16_t popped_sample = audiobuffer[audiobuffer_tail];
     audiobuffer_tail = (audiobuffer_tail + 1) & (AUDIOBUFFER_SIZE - 1);
 
     if (audiobuffer_full) {
@@ -72,7 +73,7 @@ bool audiobuffer_push(int16_t sample) {
 }
 
 void core1_operation(void) {
-    OPL * simulated_opl = OPL_new(3579545, 37500);
+    OPL *simulated_opl = OPL_new(3579545, 38000);
     OPL_setChipType(simulated_opl, 2); // Type 2 is YM3812*/
 
     while (!stop_core1) {
@@ -147,10 +148,11 @@ size_t generate_opl2(Device *self, int16_t *left_sample, int16_t *right_sample) 
         if ((new_instruction & 256) == 0) {
             register_address = new_instruction & 255;
         } else {
-            multicore_fifo_push_blocking((register_address << 8) + (new_instruction & 255));
+            multicore_fifo_push_blocking((register_address << 8) + new_instruction & 255);
         }
     }
 
+    sleep_us(100);
     if (sample_used >= SAMPLE_REPEAT) {
         last_sample = audiobuffer_pop();
         sample_used = 0;
