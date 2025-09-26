@@ -15,6 +15,12 @@
 #define LPT_INIT_PIN 12
 #define SAMPLE_RATE 96000
 
+// Buffer storing samples generated
+#define AUDIOBUFFER_SIZE 1024
+
+// Sample repeated 3 times -> for 96kHz, only 32 kHz needed (still high quality, but fast enough)
+#define SAMPLE_REPEAT 3
+
 // Variables for PIO - each device simulated has its own
 static PIO used_pio;
 static int8_t used_sm;
@@ -23,31 +29,58 @@ static int used_offset;
 // Killswitch for core1
 volatile bool stop_core1 = false;
 
-OPL *simulated_opl;
-volatile int16_t sample_from_core1 = 0;
 uint32_t register_address = 0;
+static int16_t last_sample = 0;
+static int8_t sample_used = 0;
+
+static volatile int16_t audiobuffer[AUDIOBUFFER_SIZE];
+static volatile uint16_t audiobuffer_head = 0;
+static volatile uint16_t audiobuffer_tail = 0;
+static bool audiobuffer_full = false;
+
+bool audiobuffer_is_empty(void) {
+    return (audiobuffer_head == audiobuffer_tail) && !audiobuffer_full;
+}
+
+uint32_t audiobuffer_pop(void) {
+    if (audiobuffer_is_empty()) {
+        return 0;
+    }
+    uint32_t popped_sample = audiobuffer[audiobuffer_tail];
+    audiobuffer_tail = (audiobuffer_tail + 1) & (AUDIOBUFFER_SIZE - 1);
+
+    if (audiobuffer_full) {
+        audiobuffer_full = false;
+    }
+
+    return popped_sample;
+}
+
+bool audiobuffer_push(int16_t sample) {
+    if (audiobuffer_full) {
+        return false;
+    }
+
+    audiobuffer[audiobuffer_head] = sample;
+    audiobuffer_head = (audiobuffer_head + 1) & (AUDIOBUFFER_SIZE - 1);
+
+    if (audiobuffer_head == audiobuffer_tail) {
+        audiobuffer_full = true;
+    }
+
+    return true;
+}
 
 void core1_operation(void) {
-    simulated_opl = OPL_new(3579545, 49716);
+    OPL * simulated_opl = OPL_new(3579545, 37500);
     OPL_setChipType(simulated_opl, 2); // Type 2 is YM3812*/
-
-    uint32_t last_time = time_us_32();
-    uint32_t counter = 0;
 
     while (!stop_core1) {
         if (multicore_fifo_rvalid()) {
             uint32_t whole_buffer_message = multicore_fifo_pop_blocking();
-            OPL_writeReg(simulated_opl, whole_buffer_message>>8, whole_buffer_message&255);
+            OPL_writeReg(simulated_opl, ((whole_buffer_message >> 8) & 255), whole_buffer_message & 255);
         }
-        sample_from_core1 = OPL_calc(simulated_opl);
-
-        counter++;
-        uint32_t now = time_us_32();
-        if (now - last_time >= 1000000) { // uplynula 1 sekunda
-            printf("my_function volána %u krát za poslední sekundu\n", counter);
-            counter = 0;
-            last_time = now;
-        }
+        audiobuffer_push(OPL_calc(simulated_opl));
     }
     OPL_delete(simulated_opl);
 }
@@ -118,8 +151,14 @@ size_t generate_opl2(Device *self, int16_t *left_sample, int16_t *right_sample) 
         }
     }
 
-    *left_sample = sample_from_core1;
-    *right_sample = *left_sample;
+    if (sample_used >= SAMPLE_REPEAT) {
+        last_sample = audiobuffer_pop();
+        sample_used = 0;
+    }
+
+    *left_sample = last_sample;
+    *right_sample = last_sample;
+    sample_used++;
     return 0;
 }
 

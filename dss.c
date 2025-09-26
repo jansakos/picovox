@@ -33,8 +33,8 @@ static int8_t used_pio_irq;
 // Definitions for repeating the sample
 repeating_timer_t dss_buffer_timer;
 static int16_t current_sample = 0;
-int8_t sample_used = 0;
-uint32_t raw_sample = 0;
+static int8_t sample_used = 0;
+static uint32_t raw_sample = 0;
 bool need_faster = true;
 
 // Ringbuffer definitions
