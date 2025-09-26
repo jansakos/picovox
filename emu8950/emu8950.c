@@ -171,7 +171,7 @@ static int32_t rks_table[2][32][2];
  * LW=16 or greater is recommended when upsampling.
  * LW=8 is practically okay for downsampling.
  */
-#define LW 16
+#define LW 8
 
 /* resolution of sinc(x) table. sinc(x) where 0.0<=x<1.0 corresponds to sinc_table[0...SINC_RESO-1] */
 #define SINC_RESO 256

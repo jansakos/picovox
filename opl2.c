@@ -24,21 +24,30 @@ static int used_offset;
 volatile bool stop_core1 = false;
 
 OPL *simulated_opl;
-volatile uint32_t register_address = 0;
 volatile int16_t sample_from_core1 = 0;
-volatile uint8_t value_for_reg = 0;
-volatile bool should_read = false;
+uint32_t register_address = 0;
 
 void core1_operation(void) {
-    simulated_opl = OPL_new(3579545, 49715);
+    simulated_opl = OPL_new(3579545, 49716);
     OPL_setChipType(simulated_opl, 2); // Type 2 is YM3812*/
 
+    uint32_t last_time = time_us_32();
+    uint32_t counter = 0;
+
     while (!stop_core1) {
-        if (should_read) {
-            should_read = false;
-            OPL_writeReg(simulated_opl, register_address, value_for_reg);
+        if (multicore_fifo_rvalid()) {
+            uint32_t whole_buffer_message = multicore_fifo_pop_blocking();
+            OPL_writeReg(simulated_opl, whole_buffer_message>>8, whole_buffer_message&255);
         }
         sample_from_core1 = OPL_calc(simulated_opl);
+
+        counter++;
+        uint32_t now = time_us_32();
+        if (now - last_time >= 1000000) { // uplynula 1 sekunda
+            printf("my_function volána %u krát za poslední sekundu\n", counter);
+            counter = 0;
+            last_time = now;
+        }
     }
     OPL_delete(simulated_opl);
 }
@@ -105,8 +114,7 @@ size_t generate_opl2(Device *self, int16_t *left_sample, int16_t *right_sample) 
         if ((new_instruction & 256) == 0) {
             register_address = new_instruction & 255;
         } else {
-            value_for_reg = new_instruction & 255;
-            should_read = true;
+            multicore_fifo_push_blocking((register_address << 8) + (new_instruction & 255));
         }
     }
 

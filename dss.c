@@ -181,7 +181,7 @@ size_t generate_dss(Device *self, int16_t *left_sample, int16_t *right_sample) {
         if (ringbuffer_read(&raw_sample)) {
             current_sample = (((raw_sample >> 24) & 0xFF) - 128) << 8;
         } else {
-            sleep_us(400); // Ugly timing correction - probably some calculation should be made for it to be precise
+            sleep_us(950); // Ugly timing correction - probably some calculation should be made for it to be precise
         }
     }
 

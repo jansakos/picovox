@@ -17,6 +17,7 @@
 #include "pico/stdlib.h"
 #include "pico/audio_i2s.h"
 #include "device.h"
+#include "hardware/clocks.h"
 
 // Time stored for software debounce
 volatile absolute_time_t last_change_press;
@@ -116,6 +117,7 @@ void load_change_device_irq(void) {
 int main()
 {
     stdio_init_all();
+    set_sys_clock_khz(250000, true);
     sleep_ms(1000);
 
     if (!load_device_list()) {
