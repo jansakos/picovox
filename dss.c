@@ -16,7 +16,7 @@
 
 #define RINGBUFFER_SIZE 16
 
-#define SAMPLES_REPEAT 14 // Approximation of 7kHz - frequency of undestructive reading
+#define SAMPLES_REPEAT 14 // Approximation of 7kHz
 
 pio_interrupt_source_t irq_sources[] = { 
     pis_sm0_rx_fifo_not_empty, 
@@ -33,15 +33,14 @@ static int8_t used_pio_irq;
 // Definitions for repeating the sample
 repeating_timer_t dss_buffer_timer;
 static int16_t current_sample = 0;
+static int16_t repeated_sample = 0;
 static int8_t sample_used = 0;
-static uint32_t raw_sample = 0;
-bool need_faster = true;
+static bool is_new_sample = true;
 
 // Ringbuffer definitions
 static uint32_t ringbuffer[RINGBUFFER_SIZE];
 static volatile uint8_t ringbuffer_head = 0;
 static volatile uint8_t ringbuffer_tail = 0;
-static volatile uint8_t ringbuffer_reader = 0;
 static bool ringbuffer_full = false;
 
 void __isr ringbuffer_filler(void) {
@@ -67,8 +66,16 @@ bool ringbuffer_is_empty(void) {
 
 uint32_t ringbuffer_pop(void) {
     if (ringbuffer_is_empty()) {
-        return 2147483648;
+        absolute_time_t timeout_time = get_absolute_time();
+        while (ringbuffer_is_empty() && (get_absolute_time() - timeout_time > 2400)) {  // 2286 us should be enough to get at least one sample into buffer 
+                                                                                        //-> if no sample, it is probably clear
+            tight_loop_contents();
+        }
+        if (ringbuffer_is_empty()) {
+            return 2147483648;
+        }
     }
+
     uint32_t popped_sample = ringbuffer[ringbuffer_tail];
     ringbuffer_tail = (ringbuffer_tail + 1) & (RINGBUFFER_SIZE - 1);
 
@@ -80,30 +87,9 @@ uint32_t ringbuffer_pop(void) {
     return popped_sample;
 }
 
-bool ringbuffer_read(uint32_t *sample) {
-    if (ringbuffer_is_empty()) {
-        sample_used = 0;
-        *sample = 2147483648;
-        return true;
-    }
-
-    if (ringbuffer_reader == ringbuffer_head) {
-        need_faster = false;
-        return false;
-    }
-
-    if (ringbuffer_reader == ringbuffer_tail) {
-        need_faster = true;
-    }
-
-    *sample = ringbuffer[ringbuffer_reader];
-    ringbuffer_reader = (ringbuffer_reader + 1) & (RINGBUFFER_SIZE - 1);
-    sample_used = 0;
-    return true;
-}
-
 bool new_sample(repeating_timer_t *timer_for_buffer) {
     current_sample = (((ringbuffer_pop() >> 24) & 0xFF) - 128) << 8;
+    is_new_sample = true;
     return true;
 }
 
@@ -177,16 +163,16 @@ bool unload_dss(Device *self) {
 }
 
 size_t generate_dss(Device *self, int16_t *left_sample, int16_t *right_sample) {
-    if (sample_used >= SAMPLES_REPEAT || (need_faster && sample_used >= SAMPLES_REPEAT - 1)) {
-        if (ringbuffer_read(&raw_sample)) {
-            current_sample = (((raw_sample >> 24) & 0xFF) - 128) << 8;
-        } else {
-            sleep_us(950); // Ugly timing correction - probably some calculation should be made for it to be precise
+    if (sample_used >= SAMPLES_REPEAT) {
+        while(!is_new_sample) {
+            tight_loop_contents();
         }
+        repeated_sample = current_sample;
+        sample_used = 0;
+        is_new_sample = false;
     }
-
-    *left_sample = current_sample;
-    *right_sample = current_sample;
+    *left_sample = repeated_sample;
+    *right_sample = repeated_sample;
     sample_used++;
     return 0;
 }
