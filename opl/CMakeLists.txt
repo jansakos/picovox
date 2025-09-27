@@ -8,7 +8,6 @@ target_compile_options(opl PRIVATE -fms-extensions)
 target_compile_definitions(opl PRIVATE
     USE_EMU8950_OPL
     EMU8950_ASM
-    EMU8950_NO_RATECONV
     EMU8950_NO_TLL
     EMU8950_NO_FLOAT
     EMU8950_NO_TEST_FLAG

@@ -1303,7 +1303,7 @@ void OPL_reset(OPL *opl) {
     memset(opl, 0, sizeof(*opl));
 #else
     // some fields are not reset
-    opl->adr = 0;
+//    opl->adr = 0;
     opl->notesel = 0;
 
     opl->status = 0;
@@ -1314,7 +1314,7 @@ void OPL_reset(OPL *opl) {
     opl->timer2_counter = 0;
 
     opl->pm_phase = 0;
-    opl->am_phase = 0;
+    opl->am_phase_index = 0;
 
     opl->mask = 0;
 
@@ -1375,11 +1375,10 @@ int16_t OPL_calc(OPL *opl) {
 }
 
 void OPL_calc_buffer(OPL *opl, int16_t *buffer, uint32_t nsamples) {
-    assert(opl->out_step == opl->inp_step);
+    //assert(opl->out_step == opl->inp_step);
     for (unsigned i = 0; i < nsamples; i++) {
         update_output(opl);
         buffer[i] = mix_output_raw(opl);
-        //(buffer[i] != 0) ? printf("Hodnota nenula: %d\n", buffer[i]):0;
     }
 }
 #endif

@@ -61,7 +61,7 @@ void OPL_Pico_simple(int16_t *buffer, uint32_t nsamples) {
 
 int OPL_Pico_Init(unsigned int port_base)
 {
-    emu8950_opl = OPL_new(3579552, PICO_SOUND_SAMPLE_FREQ); // todo check rate
+    emu8950_opl = OPL_new(3579552, 32000); // todo check rate
     return 1;
 }
 
