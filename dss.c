@@ -51,9 +51,7 @@ void __isr ringbuffer_filler(void) {
         if (next_index != ringbuffer_tail) {
             ringbuffer[ringbuffer_head] = given_data;
             ringbuffer_head = next_index;
-        }
-
-        if (((ringbuffer_head + 1) & (RINGBUFFER_SIZE - 1)) == ringbuffer_tail) {
+        } else {
             gpio_put(LPT_ACK_PIN, 1);
             ringbuffer_full = true;
         }
