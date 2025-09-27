@@ -32,8 +32,8 @@ bool load_device_list() {
     devices[2] = create_ftl();
     devices[3] = create_dss();
     devices[4] = create_opl2();
-/*    devices[5] = create_cms();
-    devices[6] = create_tnd();*/
+/*    devices[5] = create_tnd();
+    devices[6] = create_cms();*/
 
     for (int i = 0; i < NUM_DEVICES; i++) {
         if (devices[i] == NULL) {
