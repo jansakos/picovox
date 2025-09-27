@@ -41,11 +41,11 @@ project(picoLPTsound C CXX ASM)
 pico_sdk_init()
 
 # Include emu8950 library
-add_subdirectory(emu8950)
+add_subdirectory(opl)
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(picoLPTsound picoLPTsound.c covox.c stereo.c ftl.c dss.c opl2.c emu8950/emu8950.c )
+add_executable(picoLPTsound picoLPTsound.c covox.c stereo.c ftl.c dss.c opl2.c )
 
 # Add all PIOs to compile
 pico_generate_pio_header(${PROJECT_NAME}
@@ -69,7 +69,8 @@ target_link_libraries(picoLPTsound
         hardware_pio
         hardware_clocks
         pico_audio_i2s 
-        pico_multicore )
+        pico_multicore
+        opl )
 
 # Add the standard include files to the build
 target_include_directories(picoLPTsound PRIVATE

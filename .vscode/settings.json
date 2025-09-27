@@ -44,6 +44,7 @@
         "emu8950.h": "c",
         "timer.h": "c",
         "cstdint": "c",
-        "functional": "c"
+        "functional": "c",
+        "multicore.h": "c"
     }
 }

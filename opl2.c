@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include "device.h"
-#include "emu8950/emu8950.h"
+#include "opl/opl.h"
 #include "hardware/clocks.h"
 #include "hardware/pio.h"
 #include "pico/multicore.h"
@@ -17,10 +17,10 @@
 #define SAMPLE_RATE 96000
 
 // Buffer storing samples generated
-#define AUDIOBUFFER_SIZE 1024
+#define OPL_RINGBUFFER_SIZE 256
 
 // Sample repeated 3 times -> for 96kHz, only 32 kHz needed (still high quality, but fast enough)
-#define SAMPLE_REPEAT 3
+#define SAMPLE_REPEAT 2
 
 // Variables for PIO - each device simulated has its own
 static PIO used_pio;
@@ -34,56 +34,60 @@ uint32_t register_address = 0;
 static int16_t last_sample = 0;
 static int8_t sample_used = 0;
 
-static volatile int16_t audiobuffer[AUDIOBUFFER_SIZE];
-static volatile uint16_t audiobuffer_head = 0;
-static volatile uint16_t audiobuffer_tail = 0;
-static bool audiobuffer_full = false;
+// Ringbuffer definitions
+static uint32_t ringbuffer[OPL_RINGBUFFER_SIZE];
+static volatile uint8_t ringbuffer_head = 0;
+static volatile uint8_t ringbuffer_tail = 0;
+static bool ringbuffer_full = false;
 
-bool audiobuffer_is_empty(void) {
-    return (audiobuffer_head == audiobuffer_tail) && !audiobuffer_full;
+static bool ringbuffer_is_empty(void) {
+    return (ringbuffer_head == ringbuffer_tail) && !ringbuffer_full;
 }
 
-int16_t audiobuffer_pop(void) {
-    if (audiobuffer_is_empty()) {
+static uint32_t ringbuffer_pop(void) {
+    if (ringbuffer_is_empty()) {
         return 0;
     }
-    int16_t popped_sample = audiobuffer[audiobuffer_tail];
-    audiobuffer_tail = (audiobuffer_tail + 1) & (AUDIOBUFFER_SIZE - 1);
 
-    if (audiobuffer_full) {
-        audiobuffer_full = false;
+    uint32_t popped_sample = ringbuffer[ringbuffer_tail];
+    ringbuffer_tail = (ringbuffer_tail + 1) & (OPL_RINGBUFFER_SIZE - 1);
+
+    if (ringbuffer_full) {
+        ringbuffer_full = false;
     }
 
     return popped_sample;
 }
 
-bool audiobuffer_push(int16_t sample) {
-    if (audiobuffer_full) {
-        return false;
+static void ringbuffer_push(int16_t sample) {
+    if (ringbuffer_full) {
+        return;
     }
 
-    audiobuffer[audiobuffer_head] = sample;
-    audiobuffer_head = (audiobuffer_head + 1) & (AUDIOBUFFER_SIZE - 1);
-
-    if (audiobuffer_head == audiobuffer_tail) {
-        audiobuffer_full = true;
+    uint8_t next_index = (ringbuffer_head + 1) & (OPL_RINGBUFFER_SIZE - 1);
+    if (next_index != ringbuffer_tail) {
+        ringbuffer[ringbuffer_head] = sample;
+        ringbuffer_head = next_index;
+    } else {
+        ringbuffer_full = true;
     }
-
-    return true;
 }
 
-void core1_operation(void) {
-    OPL *simulated_opl = OPL_new(3579545, 38000);
-    OPL_setChipType(simulated_opl, 2); // Type 2 is YM3812*/
+static void core1_operation(void) {
+    OPL_Pico_Init(0);
+    int16_t current_sample = 0;
 
     while (!stop_core1) {
-        if (multicore_fifo_rvalid()) {
+        while (multicore_fifo_rvalid()) {
             uint32_t whole_buffer_message = multicore_fifo_pop_blocking();
-            OPL_writeReg(simulated_opl, ((whole_buffer_message >> 8) & 255), whole_buffer_message & 255);
+            OPL_Pico_WriteRegister(((whole_buffer_message >> 8) & 255), whole_buffer_message & 255);
         }
-        audiobuffer_push(OPL_calc(simulated_opl));
+        OPL_Pico_simple(&current_sample, 1);
+        while (ringbuffer_full) {
+            tight_loop_contents();
+        }
+        ringbuffer_push(current_sample * 100);
     }
-    OPL_delete(simulated_opl);
 }
 
 static void choose_sm(void) {
@@ -99,6 +103,9 @@ static void choose_sm(void) {
 }
 
 bool load_opl2(Device *self) {
+    ringbuffer_head = 0;
+    ringbuffer_tail = 0;
+    ringbuffer_full = false;
     choose_sm();
     if (used_sm < 0 || !pio_can_add_program(used_pio, &opl2_program)) { // If not any PIO with free sm and enough memory, abort
         return false;
@@ -142,19 +149,28 @@ bool unload_opl2(Device *self) {
     return true;
 }
 
+static uint8_t reverse_bits(uint8_t x) {
+    x = ((x & 240) >> 4) | ((x & 15) << 4);
+    x = ((x & 204) >> 2) | ((x & 51) << 2);
+    x = ((x & 170) >> 1) | ((x & 85) << 1);
+    return x;
+}
+
 size_t generate_opl2(Device *self, int16_t *left_sample, int16_t *right_sample) {
     if (!pio_sm_is_rx_fifo_empty(used_pio, used_sm)) {
         uint16_t new_instruction = (pio_sm_get(used_pio, used_sm) >> 23);
         if ((new_instruction & 256) == 0) {
             register_address = new_instruction & 255;
         } else {
-            multicore_fifo_push_blocking((register_address << 8) + new_instruction & 255);
+            multicore_fifo_push_blocking((reverse_bits(register_address) << 8) + reverse_bits(new_instruction & 255));
         }
     }
 
-    sleep_us(100);
     if (sample_used >= SAMPLE_REPEAT) {
-        last_sample = audiobuffer_pop();
+        while (ringbuffer_is_empty()) {
+            tight_loop_contents();
+        }
+        last_sample = ringbuffer_pop();
         sample_used = 0;
     }
 

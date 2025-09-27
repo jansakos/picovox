@@ -58,11 +58,11 @@ void __isr ringbuffer_filler(void) {
     }
 }
 
-bool ringbuffer_is_empty(void) {
+static bool ringbuffer_is_empty(void) {
     return (ringbuffer_head == ringbuffer_tail) && !ringbuffer_full;
 }
 
-uint32_t ringbuffer_pop(void) {
+static uint32_t ringbuffer_pop(void) {
     if (ringbuffer_is_empty()) {
         absolute_time_t timeout_time = get_absolute_time();
         while (ringbuffer_is_empty() && (get_absolute_time() - timeout_time > 2400)) {  // 2286 us should be enough to get at least one sample into buffer 
@@ -85,7 +85,7 @@ uint32_t ringbuffer_pop(void) {
     return popped_sample;
 }
 
-bool new_sample(repeating_timer_t *timer_for_buffer) {
+static bool new_sample(repeating_timer_t *timer_for_buffer) {
     current_sample = (((ringbuffer_pop() >> 24) & 0xFF) - 128) << 8;
     is_new_sample = true;
     return true;
