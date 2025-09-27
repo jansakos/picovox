@@ -17,10 +17,10 @@
 #define SAMPLE_RATE 96000
 
 // Buffer storing samples generated
-#define OPL_RINGBUFFER_SIZE 256
+#define OPL_RINGBUFFER_SIZE 4096
 
 // Sample repeated 3 times -> for 96kHz, only 32 kHz needed (still high quality, but fast enough)
-#define SAMPLE_REPEAT 2
+#define SAMPLE_REPEAT 3
 
 // Variables for PIO - each device simulated has its own
 static PIO used_pio;
@@ -149,34 +149,30 @@ bool unload_opl2(Device *self) {
     return true;
 }
 
-static uint8_t reverse_bits(uint8_t x) {
-    x = ((x & 240) >> 4) | ((x & 15) << 4);
-    x = ((x & 204) >> 2) | ((x & 51) << 2);
-    x = ((x & 170) >> 1) | ((x & 85) << 1);
-    return x;
+static void load_instruction(void) {
+    uint16_t new_instruction = (pio_sm_get(used_pio, used_sm) >> 23);
+    if ((new_instruction & 1) == 0) {
+        register_address = (new_instruction >> 1) & 255;
+    } else {
+        multicore_fifo_push_blocking(register_address << 8 + (new_instruction >> 1) & 255);
+    }
 }
 
 size_t generate_opl2(Device *self, int16_t *left_sample, int16_t *right_sample) {
-    if (!pio_sm_is_rx_fifo_empty(used_pio, used_sm)) {
-        uint16_t new_instruction = (pio_sm_get(used_pio, used_sm) >> 23);
-        if ((new_instruction & 256) == 0) {
-            register_address = new_instruction & 255;
-        } else {
-            multicore_fifo_push_blocking((reverse_bits(register_address) << 8) + reverse_bits(new_instruction & 255));
-        }
+    while (!pio_sm_is_rx_fifo_empty(used_pio, used_sm)) {
+        load_instruction();
     }
 
-    if (sample_used >= SAMPLE_REPEAT) {
+    if ((sample_used % SAMPLE_REPEAT) == 0 || (sample_used % SAMPLE_REPEAT) == 1) {
         while (ringbuffer_is_empty()) {
             tight_loop_contents();
         }
         last_sample = ringbuffer_pop();
-        sample_used = 0;
     }
 
     *left_sample = last_sample;
     *right_sample = last_sample;
-    sample_used++;
+    sample_used = (sample_used + 1) % SAMPLE_REPEAT;
     return 0;
 }
 
