@@ -72,6 +72,18 @@ static void ringbuffer_push(int16_t sample) {
     }
 }
 
+static void load_new_instruction(int16_t *register_address) {
+    if (pio_sm_is_rx_fifo_empty(used_pio, used_sm)) {
+        return;
+    }
+    uint16_t new_instruction = (pio_sm_get(used_pio, used_sm) >> 23);
+    if ((new_instruction & 1) == 0) {
+        *register_address = (new_instruction >> 1) & 255;
+    } else {
+        OPL_Pico_WriteRegister(*register_address, ((new_instruction >> 1) & 255));
+    }
+}
+
 static void core1_operation(void) {
     OPL_Pico_Init(0);
     int16_t current_sample = 0;
@@ -79,16 +91,11 @@ static void core1_operation(void) {
 
     while (!stop_core1) {
         while ((!pio_sm_is_rx_fifo_empty(used_pio, used_sm))) {
-            uint16_t new_instruction = (pio_sm_get(used_pio, used_sm) >> 23);
-            if ((new_instruction & 1) == 0) {
-                register_address = (new_instruction >> 1) & 255;
-            } else {
-                OPL_Pico_WriteRegister(register_address, ((new_instruction >> 1) & 255));
-            }
+            load_new_instruction(&register_address);
         }
         OPL_Pico_simple(&current_sample, 1);
         while (ringbuffer_full) {
-            tight_loop_contents();
+            load_new_instruction(&register_address);
         }
         ringbuffer_push(current_sample << 1);
     }
