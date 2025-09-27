@@ -20,7 +20,7 @@
 #define OPL_RINGBUFFER_SIZE 4096
 
 // Sample repeated 3 times -> for 96kHz, only 32 kHz needed (still high quality, but fast enough)
-#define SAMPLE_REPEAT 3
+#define SAMPLE_REPEAT 2
 
 // Variables for PIO - each device simulated has its own
 static PIO used_pio;
