@@ -106,6 +106,9 @@ static void choose_sm(void) {
 }
 
 bool load_dss(Device *self) {
+    ringbuffer_head = 0;
+    ringbuffer_tail = 0;
+    ringbuffer_full = false;
     choose_sm();
     if (used_sm < 0 || !pio_can_add_program(used_pio, &dss_program)) { // If not any PIO with free sm and enough memory, abort
         return false;
