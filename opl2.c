@@ -97,7 +97,7 @@ static void core1_operation(void) {
         while (ringbuffer_full && !stop_core1) {
             load_new_instruction(&register_address);
         }
-        ringbuffer_push(current_sample << 1);
+        ringbuffer_push(current_sample << 2);
     }
     OPL_Pico_delete();
 }
