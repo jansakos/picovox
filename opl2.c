@@ -94,11 +94,12 @@ static void core1_operation(void) {
             load_new_instruction(&register_address);
         }
         OPL_Pico_simple(&current_sample, 1);
-        while (ringbuffer_full) {
+        while (ringbuffer_full && !stop_core1) {
             load_new_instruction(&register_address);
         }
         ringbuffer_push(current_sample << 1);
     }
+    OPL_Pico_delete();
 }
 
 static void choose_sm(void) {
@@ -135,7 +136,6 @@ bool load_opl2(Device *self) {
         pio_gpio_init(used_pio, i);
     }
     pio_gpio_init(used_pio, LPT_INIT_PIN);
-
     pio_sm_set_consecutive_pindirs(used_pio, used_sm, LPT_BASE_PIN, 9, false); // Sets pins in PIO to be inputs
 
     if (pio_sm_init(used_pio, used_sm, used_offset, &used_config) < 0) {
@@ -144,14 +144,15 @@ bool load_opl2(Device *self) {
 
     pio_sm_set_enabled(used_pio, used_sm, true);
     stop_core1 = false;
+    multicore_reset_core1();
     multicore_launch_core1(core1_operation);
     return true;
 }
 
 bool unload_opl2(Device *self) {
+    stop_core1 = true;
     pio_sm_set_enabled(used_pio, used_sm, false);
     pio_remove_program_and_unclaim_sm(&opl2_program, used_pio, used_sm, used_offset);
-    stop_core1 = true;
 
     for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 9; i++) {
         gpio_deinit(i);

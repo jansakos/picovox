@@ -65,6 +65,10 @@ int OPL_Pico_Init(unsigned int port_base)
     return 1;
 }
 
+void OPL_Pico_delete(void) {
+    OPL_delete(emu8950_opl);
+}
+
 unsigned int OPL_Pico_PortRead(opl_port_t port)
 {
     // OPL2 has 0x06 in its status register. If this is 0, it'll get detected as an OPL3...
