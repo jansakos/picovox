@@ -24,7 +24,8 @@ volatile absolute_time_t last_change_press;
 
 #define NUM_DEVICES 5
 Device *devices[NUM_DEVICES];
-uint8_t current_device = 0;
+int8_t current_device = 0;
+int8_t wanted_device = 0;
 
 bool load_device_list() {
     devices[0] = create_covox();
@@ -44,24 +45,14 @@ bool load_device_list() {
     return true;
 }
 
-// Changes simulation to next device in enum
-void change_device(uint gpio, uint32_t events) {
+void request_change_device(uint gpio, uint32_t events) {
 
-    if (get_absolute_time() - last_change_press < 200000) {
+    if (get_absolute_time() - last_change_press < 500000) {
         return;
     }
     last_change_press = get_absolute_time();
 
-    if (!devices[current_device]->unload_device(devices[current_device])) {
-        printf("Could not unload device %d\n", current_device);
-        sleep_ms(1000);
-    }
-    current_device = (current_device + 1) % NUM_DEVICES;
-    if (!devices[current_device]->load_device(devices[current_device])) {
-        printf("Could not load device %d\n", current_device);
-        sleep_ms(1000);
-    }
-    printf("Switched to %d", current_device);
+    wanted_device = (wanted_device + 1) % NUM_DEVICES;
 }
 
 audio_format_t requested_format = {
@@ -109,9 +100,28 @@ void load_change_device_irq(void) {
     gpio_set_dir(CHANGE_BUTTON, GPIO_IN);
     gpio_pull_up(CHANGE_BUTTON);
 
-    gpio_set_irq_enabled_with_callback(CHANGE_BUTTON, GPIO_IRQ_EDGE_FALL, true, &change_device);
+    gpio_set_irq_enabled_with_callback(CHANGE_BUTTON, GPIO_IRQ_EDGE_FALL, true, &request_change_device);
 
     last_change_press = get_absolute_time();
+}
+
+bool change_device(void) {
+    if (!devices[current_device]->unload_device(devices[current_device])) {
+        printf("Could not unload device %d\n", current_device);
+        wanted_device = 0;
+        return false;
+    }
+    printf("Unloaded device %d\n", current_device);
+
+    current_device = wanted_device;
+
+    if (!devices[current_device]->load_device(devices[current_device])) {
+        printf("Could not load device %d\n", current_device);
+        wanted_device = 0;
+        return false;
+    }
+    printf("Switched to %d", current_device);
+    return true;
 }
 
 int main()
@@ -140,6 +150,9 @@ int main()
     audio_buffer_t *buffer = NULL;
 
     while(true) {
+        if (current_device != wanted_device) {
+            change_device();
+        }
         while ((buffer = take_audio_buffer(buffer_pool, false)) == NULL) {
             tight_loop_contents();
         }
