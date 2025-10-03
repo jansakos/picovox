@@ -149,6 +149,7 @@ bool load_dss(Device *self) {
 }
 
 bool unload_dss(Device *self) {
+    cancel_repeating_timer(&dss_buffer_timer);
     pio_sm_set_enabled(used_pio, used_sm, false);
     pio_set_irq0_source_enabled(used_pio, irq_sources[used_sm], false);
     irq_set_enabled(used_pio_irq, false);
