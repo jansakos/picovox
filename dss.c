@@ -16,7 +16,7 @@
 
 #define RINGBUFFER_SIZE 16
 
-#define SAMPLES_REPEAT 14 // Approximation of 7kHz
+#define SAMPLES_REPEAT 14 // Approximation of 7kHz (sample rate is 96000 => 6,86 kHz, within specified +-5 % tolerance)
 
 pio_interrupt_source_t irq_sources[] = { 
     pis_sm0_rx_fifo_not_empty, 
