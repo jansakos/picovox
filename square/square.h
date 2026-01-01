@@ -44,7 +44,7 @@
 #ifndef ASG_AUDIO_SQUARE_H
 #define ASG_AUDIO_SQUARE_H
 
-static constexpr uint32_t OUTPUT_FREQUENCY = 44100;
+static constexpr uint32_t OUTPUT_FREQUENCY = 48000;
 
 
 //===========================================================================
