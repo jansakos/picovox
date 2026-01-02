@@ -1,6 +1,10 @@
 .program stereo
 
+; Stereo-On-1
+; INPUTS: STROBE, D0-D7
+; OUTPUTS: none
+
 .wrap_target
-    in pins, 9
-    push block
+    in pins, 9      ; Read data (STROBE, D0-D7)
+    push block      ; Send data
 .wrap

@@ -1,8 +1,14 @@
 .program dss
 
+; DSS - Sound part with FIFOCLK (FIFOFULL is not handled by PIO!)
+; INPUTS: D0-D7
+; OUTPUTS: none
+
+.define SELIN 11        ; Set to proper SELIN
+
 .wrap_target
-    wait 0 gpio 11
-    wait 1 gpio 11
-    in pins, 8
-    push block
+    wait 0 gpio SELIN
+    wait 1 gpio SELIN   ; Wait for WE edge (SELIN)
+    in pins, 8          ; Read data (D0-D7)
+    push block          ; Send data
 .wrap

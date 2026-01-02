@@ -1,14 +1,22 @@
 .program ftl_sound
 
+; FTL - Covox part (just DAC sound)
+; INPUTS: D0-D7
+; OUTPUTS: none
+
 .wrap_target
-    in pins, 8
-    push block
+    in pins, 8      ; Read data (D0-D7)
+    push block      ; Send data
 .wrap
 
 .program ftl_detection
 
+; FTL - Detection part
+; INPUTS: SELIN
+; OUTPUTS: PE
+
 .wrap_target
-    in pins, 1
-    mov osr, isr
-    out pins, 1
+    in pins, 1      ; Get SELIN state
+    mov osr, isr    ; Copy state (default regs of input and output)
+    out pins, 1     ; Set PE to same state
 .wrap

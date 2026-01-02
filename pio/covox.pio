@@ -1,6 +1,10 @@
-.program covox
+.program covox  
+
+; Covox Speech Thing
+; INPUTS: D0-D7
+; OUTPUTS: none
 
 .wrap_target
-    in pins, 8
-    push block
+    in pins, 8      ; Read data (D0-D7)
+    push block      ; Send data
 .wrap
