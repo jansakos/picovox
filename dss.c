@@ -10,8 +10,8 @@
 #include "dss.pio.h"
 
 #define LPT_BASE_PIN 1
-#define LPT_SELIN_PIN 11
 #define LPT_ACK_PIN 9
+#define LPT_SELIN_PIN 11
 #define SAMPLE_RATE 96000
 
 #define RINGBUFFER_SIZE 16
