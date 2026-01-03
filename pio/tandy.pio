@@ -1,11 +1,11 @@
+.define STROBE 0            ; Set to proper STROBE
+.define INIT 12             ; Set to proper INIT
+
 .program tandy
 
 ; TNDLPT - Sound part (no reset/ready signal)
 ; INPUTS: D0-D7
 ; OUTPUTS: none
-
-.define STROBE 0
-.define INIT 12
 
 .wrap_target
     wait 0 gpio STROBE      ; Check CE is high (STROBE)

@@ -1,10 +1,10 @@
+.define INIT 12         ; Set to proper INIT
+
 .program opl2
 
 ; OPL2LPT
 ; INPUTS: STROBE, D0-D7
 ; OUTPUTS: none
-
-.define INIT 12
 
 .wrap_target
     wait 1 gpio INIT

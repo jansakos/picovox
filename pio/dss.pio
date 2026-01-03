@@ -1,10 +1,10 @@
+.define SELIN 11        ; Set to proper SELIN
+
 .program dss
 
 ; DSS - Sound part with FIFOCLK (FIFOFULL is not handled by PIO!)
 ; INPUTS: D0-D7
 ; OUTPUTS: none
-
-.define SELIN 11        ; Set to proper SELIN
 
 .wrap_target
     wait 0 gpio SELIN
