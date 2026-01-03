@@ -9,8 +9,6 @@
 #include "hardware/pio.h"
 #include "stereo.pio.h"
 
-// TODO - base pin is D0, not strobe!!! 
-
 // Variables for PIO - each device simulated has its own
 static PIO used_pio;
 static int8_t used_sm;
@@ -44,13 +42,19 @@ bool load_stereo(Device *self) {
     sm_config_set_fifo_join(&used_config, PIO_FIFO_JOIN_RX);
     sm_config_set_clkdiv(&used_config, (((float) clock_get_hz(clk_sys)) / (SAMPLE_RATE * 32)));
 
-    for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 9; i++) { // Sets pins to use PIO
+    for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 8; i++) { // Sets pins to use PIO
         pio_gpio_init(used_pio, i);
     }
 
-    pio_sm_set_consecutive_pindirs(used_pio, used_sm, LPT_BASE_PIN, 9, false); // Sets pins in PIO to be inputs
+    pio_gpio_init(used_pio, LPT_STROBE_PIN);
 
-    gpio_pull_up(LPT_BASE_PIN); // Pullup for cases where channel switch is floating
+#if LPT_STROBE_SWAPPED
+    pio_sm_set_consecutive_pindirs(used_pio, used_sm, LPT_STROBE_PIN, 9, false); // Sets pins in PIO to be inputs
+#else
+    pio_sm_set_consecutive_pindirs(used_pio, used_sm, LPT_BASE_PIN, 9, false); // Sets pins in PIO to be inputs
+#endif
+
+    gpio_pull_up(LPT_STROBE_PIN); // Pullup for cases where channel switch is floating
 
     if (pio_sm_init(used_pio, used_sm, used_offset, &used_config) < 0) {
         return false;
@@ -64,11 +68,12 @@ bool unload_stereo(Device *self) {
     pio_sm_set_enabled(used_pio, used_sm, false);
     pio_remove_program_and_unclaim_sm(&stereo_program, used_pio, used_sm, used_offset);
 
-    gpio_disable_pulls(LPT_BASE_PIN);
+    gpio_disable_pulls(LPT_STROBE_PIN);
 
-    for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 9; i++) {
+    for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 8; i++) {
         gpio_deinit(i);
     }
+    gpio_deinit(LPT_STROBE_PIN);
     return true;
 }
 
@@ -78,12 +83,22 @@ size_t generate_stereo(Device *self, int16_t *left_sample, int16_t *right_sample
             tight_loop_contents();
         }
         uint32_t raw_data = pio_sm_get(used_pio, used_sm);
+
+#if LPT_STROBE_SWAPPED
         int16_t current_sample = (((raw_data >> 24) & 0xFF) - 128) << 8;
         if (((raw_data >> 23) & 0x01) == 0) {
             *left_sample = current_sample;
         } else {
             *right_sample = current_sample;
         }
+#else
+        int16_t current_sample = (((raw_data >> 23) & 0xFF) - 128) << 8;
+        if (((raw_data >> 27) & 0x01) == 0) {
+            *left_sample = current_sample;
+        } else {
+            *right_sample = current_sample;
+        }
+#endif
     }
     return 0;
 }

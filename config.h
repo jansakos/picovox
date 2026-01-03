@@ -4,7 +4,7 @@
 #define SAMPLE_RATE 96000
 
 // Definitions of GPIO LPT pins
-#define LPT_STROBE_PIN 0
+#define LPT_STROBE_PIN 0    // Beware! STROBE pin must be exactly one position before or after the DATA pins! (Check control down.)
 #define LPT_BASE_PIN 1
 #define LPT_ACK_PIN 9
 #define LPT_PAPEREND_PIN 10
@@ -18,5 +18,14 @@
 
 // Definitions of GPIO mode switch button (GPIO - ground)
 #define CHANGE_BUTTON_PIN 17
+
+// Control of correct LPT_STROBE_PIN definition
+#if LPT_STROBE_PIN == (LPT_BASE_PIN - 1)
+    #define LPT_STROBE_SWAPPED 1
+#elif LPT_STROBE_PIN == (LPT_BASE_PIN + 8)
+    #define LPT_STROBE_SWAPPED 0
+#else
+    #error "STROBE pin must be either LPT_BASE_PIN-1 or LPT_BASE_PIN+8"
+#endif
 
 #endif
