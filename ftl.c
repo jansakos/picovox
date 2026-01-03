@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include "pio_manager.h"
 #include "device.h"
 #include "hardware/clocks.h"
 #include "hardware/pio.h"
