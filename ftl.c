@@ -18,35 +18,14 @@ static PIO detection_pio;
 static int8_t detection_sm;
 static int detection_offset;
 
-static void choose_sm(PIO *pio_to_assign, uint8_t *sm_to_assign, const pio_program_t *assigned_program) {
-    *pio_to_assign = pio1;
-    *sm_to_assign = pio_claim_unused_sm(*pio_to_assign, false);
-
-#ifdef PICO_RP2350
-    if (sound_sm < 0 || !pio_can_add_program(*pio_to_assign, assigned_program)) { // If no free sm or memory on PIO1, try PIO2 (not on Pico1)
-        *pio_to_assign = pio2;
-        *sm_to_assign = pio_claim_unused_sm(*pio_to_assign, false);
-    }
-#endif
-}
-
 bool load_ftl(Device *self) {
-    choose_sm(&sound_pio, &sound_sm, &ftl_sound_program);
-    if (sound_sm < 0 || !pio_can_add_program(sound_pio, &ftl_sound_program)) { // If not any PIO with free sm and enough memory, abort
-        return false;
-    }
 
-    sound_offset = pio_add_program(sound_pio, &ftl_sound_program);
+    sound_offset = pio_manager_load(&sound_pio, &sound_sm, &ftl_sound_program);
     if (sound_offset < 0) {
         return false;
     }
 
-    choose_sm(&detection_pio, &detection_sm, &ftl_detection_program);
-    if (detection_sm < 0 || !pio_can_add_program(detection_pio, &ftl_detection_program)) { // If not any PIO with free sm and enough memory, abort
-        return false;
-    }
-
-    detection_offset = pio_add_program(detection_pio, &ftl_detection_program);
+    detection_offset = pio_manager_load(&detection_pio, &detection_sm, &ftl_detection_program);
     if (detection_offset < 0) {
         return false;
     }
@@ -87,10 +66,8 @@ bool load_ftl(Device *self) {
 bool unload_ftl(Device *self) {
     pio_sm_set_enabled(sound_pio, sound_sm, false);
     pio_sm_set_enabled(detection_pio, detection_sm, false);
-    pio_sm_unclaim(sound_pio, sound_sm);
-    pio_sm_unclaim(detection_pio, detection_sm);
-    pio_remove_program(sound_pio, &ftl_sound_program, sound_offset);
-    pio_remove_program(detection_pio, &ftl_detection_program, detection_offset);
+    pio_manager_unload(sound_pio, sound_sm, sound_offset, &ftl_sound_program);
+    pio_manager_unload(detection_pio, detection_sm, detection_offset, &ftl_detection_program);
 
     for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 8; i++) {
         gpio_deinit(i);
