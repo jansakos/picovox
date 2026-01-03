@@ -110,28 +110,12 @@ static void core1_operation(void) {
     OPL_Pico_delete();
 }
 
-static void choose_sm(void) {
-    used_pio = pio1;
-    used_sm = pio_claim_unused_sm(used_pio, false);
-
-#ifdef PICO_RP2350
-    if (used_sm < 0 || !pio_can_add_program(used_pio, &opl2_program)) { // If no free sm or memory on PIO1, try PIO2 (not on Pico1)
-        used_pio = pio2;
-        used_sm = pio_claim_unused_sm(used_pio, false);
-    }
-#endif
-}
-
 bool load_opl2(Device *self) {
     ringbuffer_head = 0;
     ringbuffer_tail = 0;
     ringbuffer_full = false;
-    choose_sm();
-    if (used_sm < 0 || !pio_can_add_program(used_pio, &opl2_program)) { // If not any PIO with free sm and enough memory, abort
-        return false;
-    }
 
-    used_offset = pio_add_program(used_pio, &opl2_program);
+    used_offset = pio_manager_load(&used_pio, &used_sm, &opl2_program);
     if (used_offset < 0) {
         return false;
     }
@@ -170,7 +154,7 @@ bool load_opl2(Device *self) {
 bool unload_opl2(Device *self) {
     stop_core1 = true;
     pio_sm_set_enabled(used_pio, used_sm, false);
-    pio_remove_program_and_unclaim_sm(&opl2_program, used_pio, used_sm, used_offset);
+    pio_manager_unload(used_pio, used_sm, used_offset, &opl2_program);
 
     for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 8; i++) {
         gpio_deinit(i);
