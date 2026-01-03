@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include "device.h"
 #include "pio_manager.h"
+#include "ringbuffer.h"
 #include "opl/opl.h"
 #include "hardware/clocks.h"
 #include "hardware/pio.h"
@@ -31,45 +32,6 @@ volatile bool stop_core1 = false;
 
 static int16_t last_sample = 0;
 static int8_t sample_used = 0;
-
-// Ringbuffer definitions
-static int16_t ringbuffer[OPL_RINGBUFFER_SIZE];
-static volatile uint16_t ringbuffer_head = 0;
-static volatile uint16_t ringbuffer_tail = 0;
-static bool ringbuffer_full = false;
-
-static bool ringbuffer_is_empty(void) {
-    return (ringbuffer_head == ringbuffer_tail) && !ringbuffer_full;
-}
-
-static int16_t ringbuffer_pop(void) {
-    if (ringbuffer_is_empty()) {
-        return 0;
-    }
-
-    int16_t popped_sample = ringbuffer[ringbuffer_tail];
-    ringbuffer_tail = (ringbuffer_tail + 1) & (OPL_RINGBUFFER_SIZE - 1);
-
-    if (ringbuffer_full) {
-        ringbuffer_full = false;
-    }
-
-    return popped_sample;
-}
-
-static void ringbuffer_push(int16_t sample) {
-    if (ringbuffer_full) {
-        return;
-    }
-
-    uint16_t next_index = (ringbuffer_head + 1) & (OPL_RINGBUFFER_SIZE - 1);
-    if (next_index != ringbuffer_tail) {
-        ringbuffer[ringbuffer_head] = sample;
-        ringbuffer_head = next_index;
-    } else {
-        ringbuffer_full = true;
-    }
-}
 
 static void load_new_instruction(int16_t *register_address) {
     if (pio_sm_is_rx_fifo_empty(used_pio, used_sm)) {
@@ -103,7 +65,7 @@ static void core1_operation(void) {
             load_new_instruction(&register_address);
         }
         OPL_Pico_simple(&current_sample, 1);
-        while (ringbuffer_full && !stop_core1) {
+        while (ringbuffer_full() && !stop_core1) {
             load_new_instruction(&register_address);
         }
         ringbuffer_push(current_sample << 2);
@@ -112,9 +74,7 @@ static void core1_operation(void) {
 }
 
 bool load_opl2(Device *self) {
-    ringbuffer_head = 0;
-    ringbuffer_tail = 0;
-    ringbuffer_full = false;
+    ringbuffer_init(OPL_RINGBUFFER_SIZE);
 
     used_offset = pio_manager_load(&used_pio, &used_sm, &opl2_program);
     if (used_offset < 0) {
@@ -168,10 +128,12 @@ bool unload_opl2(Device *self) {
 size_t generate_opl2(Device *self, int16_t *left_sample, int16_t *right_sample) {
 
     if (sample_used >= SAMPLE_REPEAT) {
-        while (ringbuffer_is_empty()) {
+        while (ringbuffer_empty()) {
             tight_loop_contents();
         }
-        last_sample = ringbuffer_pop();
+        if (!ringbuffer_pop(&last_sample)) {
+            last_sample = 0;
+        }
         sample_used = 0;
     }
 

@@ -10,7 +10,7 @@ static bool empty = true;
 static int16_t buffer[MAX_SIZE];
 
 bool ringbuffer_init(size_t wanted_size) {
-    if (wanted_size > MAX_SIZE || (wanted_size & (wanted_size - 1)) != 0) { //Check for power of 2.
+    if (wanted_size > MAX_SIZE || (wanted_size & (wanted_size - 1)) != 0) { // Check for power of 2.
         return false;
     }
 
