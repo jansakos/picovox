@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include "pio_manager.h"
+#include "ringbuffer.h"
 #include "device.h"
 #include "hardware/pio.h"
 #include "hardware/irq.h"
@@ -12,8 +13,7 @@
 #include "pico/stdlib.h"
 #include "dss.pio.h"
 
-#define RINGBUFFER_SIZE 16
-
+#define DSS_RINGBUFFER_SIZE 16
 #define SAMPLES_REPEAT 14 // Approximation of 7kHz (sample rate is 96000 => 6,86 kHz, within specified +-5 % tolerance)
 
 pio_interrupt_source_t irq_sources[] = { 
@@ -35,67 +35,45 @@ static int16_t repeated_sample = 0;
 static int8_t sample_used = 0;
 static bool is_new_sample = true;
 
-// Ringbuffer definitions
-static uint32_t ringbuffer[RINGBUFFER_SIZE];
-static volatile uint8_t ringbuffer_head = 0;
-static volatile uint8_t ringbuffer_tail = 0;
-static bool ringbuffer_full = false;
-
 void __isr ringbuffer_filler(void) {
     while (!pio_sm_is_rx_fifo_empty(used_pio, used_sm)) {
-        uint32_t given_data = pio_sm_get(used_pio, used_sm);
+        int16_t pushed_data = (((pio_sm_get(used_pio, used_sm) >> 24) & 0xFF) - 128);
 
-        uint8_t next_index = (ringbuffer_head + 1) & (RINGBUFFER_SIZE - 1);
-        if (next_index != ringbuffer_tail) {
-            ringbuffer[ringbuffer_head] = given_data;
-            ringbuffer_head = next_index;
-        } else {
-            gpio_put(LPT_ACK_PIN, 1);
-            ringbuffer_full = true;
+        if (!ringbuffer_push(pushed_data)) {
+            gpio_put(LPT_ACK_PIN, true);
         }
     }
-}
-
-static bool ringbuffer_is_empty(void) {
-    return (ringbuffer_head == ringbuffer_tail) && !ringbuffer_full;
-}
-
-static uint32_t ringbuffer_pop(void) {
-    if (ringbuffer_is_empty()) {
-        absolute_time_t timeout_time = get_absolute_time();
-        while (ringbuffer_is_empty() && (get_absolute_time() - timeout_time > 2400)) {  // 2286 us is enough to get at least one sample into buffer 
-                                                                                        //-> if no sample, it is clear
-            tight_loop_contents();
-        }
-        if (ringbuffer_is_empty()) {
-            return 2147483648;
-        }
-    }
-
-    uint32_t popped_sample = ringbuffer[ringbuffer_tail];
-    ringbuffer_tail = (ringbuffer_tail + 1) & (RINGBUFFER_SIZE - 1);
-
-    if (ringbuffer_full) {
-        ringbuffer_full = false;
-        gpio_put(LPT_ACK_PIN, 0);
-    }
-
-    return popped_sample;
 }
 
 static bool new_sample(repeating_timer_t *timer_for_buffer) {
-    current_sample = (((ringbuffer_pop() >> 24) & 0xFF) - 128) << 8;
+    if (ringbuffer_empty()) {
+        current_sample = 0;
+        is_new_sample = true;
+        return true;
+    }
+
+    if (ringbuffer_full()) {
+        gpio_put(LPT_ACK_PIN, false);
+    }
+
+    ringbuffer_pop(&current_sample);
+    current_sample = current_sample << 8;
     is_new_sample = true;
     return true;
 }
 
 bool load_dss(Device *self) {
-    ringbuffer_head = 0;
-    ringbuffer_tail = 0;
-    ringbuffer_full = false;
+    ringbuffer_init(DSS_RINGBUFFER_SIZE);
+
     used_offset = pio_manager_load(&used_pio, &used_sm, &dss_program);
     if (used_offset < 0) {
         return false;
+    }
+
+    if (used_pio == pio1) {
+        used_pio_irq = PIO1_IRQ_0;
+    } else {
+        used_pio_irq = PIO2_IRQ_0;
     }
 
     pio_sm_config used_config = dss_program_get_default_config(used_offset);

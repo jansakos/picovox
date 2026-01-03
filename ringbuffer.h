@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 /**
  * @brief Initializes ringbuffer with given size (elements not deleted, but head and tail reseted).
