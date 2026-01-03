@@ -127,14 +127,24 @@ bool load_opl2(Device *self) {
     }
 
     pio_sm_config used_config = opl2_program_get_default_config(used_offset);
+#if LPT_STROBE_SWAPPED
+    sm_config_set_in_pins(&used_config, LPT_STROBE_PIN);
+#else
     sm_config_set_in_pins(&used_config, LPT_BASE_PIN);
+#endif
     sm_config_set_fifo_join(&used_config, PIO_FIFO_JOIN_RX);
 
-    for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 9; i++) { // Sets pins to use PIO
+    for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 8; i++) { // Sets pins to use PIO
         pio_gpio_init(used_pio, i);
     }
+
+    pio_gpio_init(used_pio, LPT_STROBE_PIN);
     pio_gpio_init(used_pio, LPT_INIT_PIN);
+#if LPT_STROBE_SWAPPED
+    pio_sm_set_consecutive_pindirs(used_pio, used_sm, LPT_STROBE_PIN, 9, false); // Sets pins in PIO to be inputs
+#else
     pio_sm_set_consecutive_pindirs(used_pio, used_sm, LPT_BASE_PIN, 9, false); // Sets pins in PIO to be inputs
+#endif
 
     if (pio_sm_init(used_pio, used_sm, used_offset, &used_config) < 0) {
         return false;
@@ -152,9 +162,10 @@ bool unload_opl2(Device *self) {
     pio_sm_set_enabled(used_pio, used_sm, false);
     pio_remove_program_and_unclaim_sm(&opl2_program, used_pio, used_sm, used_offset);
 
-    for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 9; i++) {
+    for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 8; i++) {
         gpio_deinit(i);
     }
+    gpio_deinit(LPT_STROBE_PIN);
     gpio_deinit(LPT_INIT_PIN);
     return true;
 }
