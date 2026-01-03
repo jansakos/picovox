@@ -88,30 +88,11 @@ static bool new_sample(repeating_timer_t *timer_for_buffer) {
     return true;
 }
 
-static void choose_sm(void) {
-    used_pio = pio1;
-    used_sm = pio_claim_unused_sm(used_pio, false);
-    used_pio_irq = PIO1_IRQ_0;
-
-#ifdef PICO_RP2350
-    if (used_sm < 0 || !pio_can_add_program(used_pio, &dss_program)) { // If no free sm or memory on PIO1, try PIO2 (not on Pico1)
-        used_pio = pio2;
-        used_sm = pio_claim_unused_sm(used_pio, false);
-        used_pio_irq = PIO2_IRQ_0;
-    }
-#endif
-}
-
 bool load_dss(Device *self) {
     ringbuffer_head = 0;
     ringbuffer_tail = 0;
     ringbuffer_full = false;
-    choose_sm();
-    if (used_sm < 0 || !pio_can_add_program(used_pio, &dss_program)) { // If not any PIO with free sm and enough memory, abort
-        return false;
-    }
-
-    used_offset = pio_add_program(used_pio, &dss_program);
+    used_offset = pio_manager_load(&used_pio, &used_sm, &dss_program);
     if (used_offset < 0) {
         return false;
     }
@@ -151,7 +132,7 @@ bool unload_dss(Device *self) {
     pio_set_irq0_source_enabled(used_pio, irq_sources[used_sm], false);
     irq_set_enabled(used_pio_irq, false);
     irq_remove_handler(used_pio_irq, ringbuffer_filler);
-    pio_remove_program_and_unclaim_sm(&dss_program, used_pio, used_sm, used_offset);
+    pio_manager_unload(used_pio, used_sm, used_offset, &dss_program);
 
     for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 8; i++) {
         gpio_deinit(i);
