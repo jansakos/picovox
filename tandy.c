@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -6,13 +8,6 @@
 #include "hardware/clocks.h"
 #include "hardware/pio.h"
 #include "tandy.pio.h"
-
-#define LPT_STROBE_PIN 0
-#define LPT_BASE_PIN 1
-#define LPT_ACK_PIN 9
-#define LPT_SELIN_PIN 11
-#define LPT_INIT_PIN 12
-#define SAMPLE_RATE 96000
 
 // Variables for PIO - each device simulated has its own
 static PIO used_pio;

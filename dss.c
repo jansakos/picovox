@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -8,11 +10,6 @@
 #include "pico/time.h"
 #include "pico/stdlib.h"
 #include "dss.pio.h"
-
-#define LPT_BASE_PIN 1
-#define LPT_ACK_PIN 9
-#define LPT_SELIN_PIN 11
-#define SAMPLE_RATE 96000
 
 #define RINGBUFFER_SIZE 16
 
@@ -65,8 +62,8 @@ static bool ringbuffer_is_empty(void) {
 static uint32_t ringbuffer_pop(void) {
     if (ringbuffer_is_empty()) {
         absolute_time_t timeout_time = get_absolute_time();
-        while (ringbuffer_is_empty() && (get_absolute_time() - timeout_time > 2400)) {  // 2286 us should be enough to get at least one sample into buffer 
-                                                                                        //-> if no sample, it is probably clear
+        while (ringbuffer_is_empty() && (get_absolute_time() - timeout_time > 2400)) {  // 2286 us is enough to get at least one sample into buffer 
+                                                                                        //-> if no sample, it is clear
             tight_loop_contents();
         }
         if (ringbuffer_is_empty()) {

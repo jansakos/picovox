@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -7,8 +9,7 @@
 #include "hardware/pio.h"
 #include "stereo.pio.h"
 
-#define LPT_BASE_PIN 0
-#define SAMPLE_RATE 96000
+// TODO - base pin is D0, not strobe!!! 
 
 // Variables for PIO - each device simulated has its own
 static PIO used_pio;

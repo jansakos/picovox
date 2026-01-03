@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -6,11 +8,6 @@
 #include "hardware/clocks.h"
 #include "hardware/pio.h"
 #include "ftl.pio.h"
-
-#define LPT_BASE_PIN 1
-#define LPT_SELIN 11
-#define LPT_PAPEREND 10
-#define SAMPLE_RATE 96000
 
 // Variables for PIO - each device simulated has its own
 static PIO sound_pio;
@@ -60,19 +57,19 @@ bool load_ftl(Device *self) {
     sm_config_set_clkdiv(&used_config_sound, (((float) clock_get_hz(clk_sys)) / (SAMPLE_RATE * 2)));
 
     pio_sm_config used_config_detection = ftl_detection_program_get_default_config(detection_offset);
-    sm_config_set_in_pins(&used_config_detection, LPT_SELIN);
-    sm_config_set_out_pins(&used_config_detection, LPT_PAPEREND, 1);
+    sm_config_set_in_pins(&used_config_detection, LPT_SELIN_PIN);
+    sm_config_set_out_pins(&used_config_detection, LPT_PAPEREND_PIN, 1);
     sm_config_set_clkdiv(&used_config_detection, 10.0);
 
     for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 8; i++) { // Sets pins to use PIO
         pio_gpio_init(sound_pio, i);
     }
-    pio_gpio_init(detection_pio, LPT_PAPEREND);
-    pio_gpio_init(detection_pio, LPT_SELIN);
+    pio_gpio_init(detection_pio, LPT_PAPEREND_PIN);
+    pio_gpio_init(detection_pio, LPT_SELIN_PIN);
 
     pio_sm_set_consecutive_pindirs(sound_pio, sound_sm, LPT_BASE_PIN, 8, false); // Sets pins in PIO to be inputs/outputs
-    pio_sm_set_consecutive_pindirs(detection_pio, detection_sm, LPT_SELIN, 1, false);
-    pio_sm_set_consecutive_pindirs(detection_pio, detection_sm, LPT_PAPEREND, 1, true);
+    pio_sm_set_consecutive_pindirs(detection_pio, detection_sm, LPT_SELIN_PIN, 1, false);
+    pio_sm_set_consecutive_pindirs(detection_pio, detection_sm, LPT_PAPEREND_PIN, 1, true);
 
     if (pio_sm_init(sound_pio, sound_sm, sound_offset, &used_config_sound) < 0) {
         return false;
@@ -98,8 +95,8 @@ bool unload_ftl(Device *self) {
     for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 8; i++) {
         gpio_deinit(i);
     }
-    gpio_deinit(LPT_PAPEREND);
-    gpio_deinit(LPT_SELIN);
+    gpio_deinit(LPT_PAPEREND_PIN);
+    gpio_deinit(LPT_SELIN_PIN);
     return true;
 }
 

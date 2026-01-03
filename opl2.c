@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -12,14 +14,10 @@
 
 #include "pico/stdlib.h"
 
-#define LPT_BASE_PIN 0
-#define LPT_INIT_PIN 12
-#define SAMPLE_RATE 96000
-
 // Buffer storing samples generated
 #define OPL_RINGBUFFER_SIZE 4096
 
-// Sample repeated 3 times -> for 96kHz, only 32 kHz needed (still high quality, but fast enough)
+// Sample repeated 2 times -> for 96kHz, only 48 kHz needed (still high quality, but fast enough)
 #define SAMPLE_REPEAT 2
 
 // Variables for PIO - each device simulated has its own

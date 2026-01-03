@@ -1,16 +1,11 @@
+#include "config.h"
+
 // Definitions for I2S library
-#define PICO_AUDIO_I2S_CLOCK_PINS_SWAPPED 0
-#define PICO_AUDIO_I2S_CLOCK_PIN_BASE 26
-#define PICO_AUDIO_I2S_DATA_PIN 28
 #define PICO_AUDIO_PIO 0
 #define PICO_AUDIO_DMA_IRQ 1
 #define SAMPLES_PER_BUFFER 512
 #define NUM_BUFFERS 10
-#define SAMPLE_RATE 96000
 #define CHANNEL_COUNT 2
-
-// Button for changing the device (GPIO - ground)
-#define CHANGE_BUTTON 17
 
 #include <stdio.h>
 #include <stdbool.h>
