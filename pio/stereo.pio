@@ -8,3 +8,15 @@
     in pins, 9      ; Read data (STROBE, D0-D7 || D0-D7, STROBE -> check config.h)
     push block      ; Send data
 .wrap
+
+.program stereo_detection
+
+; Stereo-On-1 - Detection part
+; INPUTS: D7
+; OUTPUTS: BUSY
+
+.wrap_target
+    in pins, 1      ; Get D7 state
+    mov osr, isr    ; Copy state (default regs of input and output)
+    out pins, 1     ; Set BUSY to same state
+.wrap

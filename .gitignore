@@ -1,3 +1,5 @@
 build
 todo.txt
 !.vscode/*
+stereo.c.old
+stereo.pio.old
