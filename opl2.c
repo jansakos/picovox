@@ -74,12 +74,22 @@ static void load_new_instruction(int16_t *register_address) {
     if (pio_sm_is_rx_fifo_empty(used_pio, used_sm)) {
         return;
     }
+
     uint16_t new_instruction = (pio_sm_get(used_pio, used_sm) >> 23);
+
+#if LPT_STROBE_SWAPPED
     if ((new_instruction & 1) == 0) {
         *register_address = (new_instruction >> 1) & 255;
     } else {
         OPL_Pico_WriteRegister(*register_address, ((new_instruction >> 1) & 255));
     }
+#else
+    if (((new_instruction >> 8) & 1) == 0) {
+        *register_address = new_instruction & 255;
+    } else {
+        OPL_Pico_WriteRegister(*register_address, (new_instruction & 255));
+    }
+#endif
 }
 
 static void core1_operation(void) {
