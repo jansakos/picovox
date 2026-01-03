@@ -7,9 +7,9 @@
 /**
  * @brief Initializes ringbuffer with given size (elements not deleted, but head and tail reseted).
  *
- * @param size Size of the ringbuffer.
+ * @param size Size of the ringbuffer. Must be power of 2.
  * 
- * @return true if ringbuffer is loaded, false if not (wanted size too big).
+ * @return true if ringbuffer is loaded, false if not (wanted size too big or not power of 2).
  */
 bool ringbuffer_init(size_t size);
 
