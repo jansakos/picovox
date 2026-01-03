@@ -9,6 +9,6 @@
 .wrap_target
     wait 1 gpio INIT
     wait 0 gpio INIT    ; Wait for WE edge (INIT)
-    in pins, 9          ; Read data (STROBE, D0-D7)
+    in pins, 9          ; Read data (STROBE, D0-D7 || D0-D7, STROBE -> check config.h)
     push block          ; Send data
 .wrap
