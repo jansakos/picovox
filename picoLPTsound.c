@@ -91,11 +91,11 @@ audio_buffer_pool_t *load_audio(void) {
 }
 
 void load_change_device_irq(void) {
-    gpio_init(CHANGE_BUTTON);
-    gpio_set_dir(CHANGE_BUTTON, GPIO_IN);
-    gpio_pull_up(CHANGE_BUTTON);
+    gpio_init(CHANGE_BUTTON_PIN);
+    gpio_set_dir(CHANGE_BUTTON_PIN, GPIO_IN);
+    gpio_pull_up(CHANGE_BUTTON_PIN);
 
-    gpio_set_irq_enabled_with_callback(CHANGE_BUTTON, GPIO_IRQ_EDGE_FALL, true, &request_change_device);
+    gpio_set_irq_enabled_with_callback(CHANGE_BUTTON_PIN, GPIO_IRQ_EDGE_FALL, true, &request_change_device);
 
     last_change_press = get_absolute_time();
 }

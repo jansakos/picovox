@@ -17,6 +17,6 @@
 #define PICO_AUDIO_I2S_DATA_PIN 28
 
 // Definitions of GPIO mode switch button (GPIO - ground)
-#define CHANGE_BUTTON 17
+#define CHANGE_BUTTON_PIN 17
 
 #endif
