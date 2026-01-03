@@ -38,7 +38,11 @@ bool load_stereo(Device *self) {
     }
 
     pio_sm_config used_config = stereo_program_get_default_config(used_offset);
+#if LPT_STROBE_SWAPPED
+    sm_config_set_in_pins(&used_config, LPT_STROBE_PIN);
+#else
     sm_config_set_in_pins(&used_config, LPT_BASE_PIN);
+#endif
     sm_config_set_fifo_join(&used_config, PIO_FIFO_JOIN_RX);
     sm_config_set_clkdiv(&used_config, (((float) clock_get_hz(clk_sys)) / (SAMPLE_RATE * 32)));
 
