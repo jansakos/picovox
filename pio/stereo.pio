@@ -1,12 +1,30 @@
-.program stereo
+.define STROBE 0            ; Set to proper STROBE
+.define AUTOFEED 0          ; Set to proper AUTOFEED
 
-; Stereo-On-1
-; INPUTS: STROBE, D0-D7
+.program stereo_left
+
+; Stereo-On-1 left channel
+; INPUTS: D0-D7
 ; OUTPUTS: none
 
 .wrap_target
-    in pins, 9      ; Read data (STROBE, D0-D7 || D0-D7, STROBE -> check config.h)
-    push block      ; Send data
+    wait 1 gpio AUTOFEED
+    wait 0 gpio AUTOFEED    ; Wait for WE edge (AUTOFEED)
+    in pins, 8              ; Read data (D0-D7)
+    push block              ; Send data
+.wrap
+
+.program stereo_right
+
+; Stereo-On-1 right channel
+; INPUTS: D0-D7
+; OUTPUTS: none
+
+.wrap_target
+    wait 1 gpio STROBE
+    wait 0 gpio STROBE      ; Wait for WE edge (STROBE)
+    in pins, 8              ; Read data (D0-D7)
+    push block              ; Send data
 .wrap
 
 .program stereo_detection
@@ -16,7 +34,7 @@
 ; OUTPUTS: BUSY
 
 .wrap_target
-    in pins, 1      ; Get D7 state
-    mov osr, isr    ; Copy state (default regs of input and output)
-    out pins, 1     ; Set BUSY to same state
+    in pins, 1              ; Get D7 state
+    mov osr, isr            ; Copy state (default regs of input and output)
+    out pins, 1             ; Set BUSY to same state
 .wrap
