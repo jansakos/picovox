@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include "pio_manager.h"
 #include "device.h"
 #include "hardware/clocks.h"
 #include "hardware/pio.h"
@@ -14,25 +15,9 @@ static PIO used_pio;
 static int8_t used_sm;
 static int used_offset;
 
-static void choose_sm(void) {
-    used_pio = pio1;
-    used_sm = pio_claim_unused_sm(used_pio, false);
-
-#ifdef PICO_RP2350
-    if (used_sm < 0 || !pio_can_add_program(used_pio, &covox_program)) { // If no free sm or memory on PIO1, try PIO2 (not on Pico1)
-        used_pio = pio2;
-        used_sm = pio_claim_unused_sm(used_pio, false);
-    }
-#endif
-}
-
 bool load_covox(Device *self) {
-    choose_sm();
-    if (used_sm < 0 || !pio_can_add_program(used_pio, &covox_program)) { // If not any PIO with free sm and enough memory, abort
-        return false;
-    }
 
-    used_offset = pio_add_program(used_pio, &covox_program);
+    used_offset = pio_manager_load(&used_pio, &used_sm, &covox_program);
     if (used_offset < 0) {
         return false;
     }
@@ -58,7 +43,7 @@ bool load_covox(Device *self) {
 
 bool unload_covox(Device *self) {
     pio_sm_set_enabled(used_pio, used_sm, false);
-    pio_remove_program_and_unclaim_sm(&covox_program, used_pio, used_sm, used_offset);
+    pio_manager_unload(used_pio, used_sm, used_offset, &covox_program);
 
     for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 8; i++) {
         gpio_deinit(i);
