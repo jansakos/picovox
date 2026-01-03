@@ -10,6 +10,9 @@
 #define LPT_PAPEREND_PIN 10
 #define LPT_SELIN_PIN 11
 #define LPT_INIT_PIN 12
+#define LPT_BUSY_PIN 13
+#define LPT_SELECT_PIN 14
+#define LPT_AUTOFEED_PIN 15
 
 // Definitions of GPIO I2S pins
 #define PICO_AUDIO_I2S_CLOCK_PIN_BASE 26
