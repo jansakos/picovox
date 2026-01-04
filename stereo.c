@@ -138,13 +138,8 @@ bool load_stereo(Device *self) {
 }
 
 bool unload_stereo(Device *self) {
-        // vypnout PWM slice
     pwm_set_enabled(pwm_slice, false);
-
-    // vypnout IRQ
     irq_set_enabled(PWM_IRQ_WRAP, false);
-
-    // případně odregistrovat handler (volitelné)
     irq_remove_handler(PWM_IRQ_WRAP, pwm_irq_handler);
 
     pio_sm_set_enabled(sound_left_pio, sound_left_sm, false);
