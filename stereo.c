@@ -4,86 +4,118 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include "pio_manager.h"
 #include "device.h"
+#include "pio_manager.h"
 #include "hardware/clocks.h"
 #include "hardware/pio.h"
 #include "stereo.pio.h"
 
 // Variables for PIO - each device simulated has its own
-static PIO used_pio;
-static int8_t used_sm;
-static int used_offset;
+static PIO sound_left_pio;
+static int8_t sound_left_sm;
+static int sound_left_offset;
+
+static PIO sound_right_pio;
+static int8_t sound_right_sm;
+static int sound_right_offset;
+
+static PIO detection_pio;
+static int8_t detection_sm;
+static int detection_offset;
 
 bool load_stereo(Device *self) {
-
-    used_offset = pio_manager_load(&used_pio, &used_sm, &stereo_program);
-    if (used_offset < 0) {
+    sound_left_offset = pio_manager_load(&sound_left_pio, &sound_left_sm, &stereo_left_program);
+    if (sound_left_offset < 0) {
         return false;
     }
 
-    pio_sm_config used_config = stereo_program_get_default_config(used_offset);
-#if LPT_STROBE_SWAPPED
-    sm_config_set_in_pins(&used_config, LPT_STROBE_PIN);
-#else
-    sm_config_set_in_pins(&used_config, LPT_BASE_PIN);
-#endif
-    sm_config_set_fifo_join(&used_config, PIO_FIFO_JOIN_RX);
-    sm_config_set_clkdiv(&used_config, (((float) clock_get_hz(clk_sys)) / (SAMPLE_RATE * 32)));
+    sound_right_offset = pio_manager_load(&sound_right_pio, &sound_right_sm, &stereo_right_program);
+    if (sound_right_offset < 0) {
+        return false;
+    }
+
+    detection_offset = pio_manager_load(&detection_pio, &detection_sm, &stereo_detection_program);
+    if (detection_offset < 0) {
+        return false;
+    }
+
+    pio_sm_config used_config_left = stereo_left_program_get_default_config(sound_left_offset);
+    sm_config_set_in_pins(&used_config_left, LPT_BASE_PIN);
+    sm_config_set_fifo_join(&used_config_left, PIO_FIFO_JOIN_RX);
 
     for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 8; i++) { // Sets pins to use PIO
-        pio_gpio_init(used_pio, i);
+        pio_gpio_init(sound_left_pio, i);
     }
 
-    pio_gpio_init(used_pio, LPT_STROBE_PIN);
+    pio_sm_set_consecutive_pindirs(sound_left_pio, sound_left_sm, LPT_BASE_PIN, 8, false); // Sets pins in PIO to be inputs
 
-#if LPT_STROBE_SWAPPED
-    pio_sm_set_consecutive_pindirs(used_pio, used_sm, LPT_STROBE_PIN, 9, false); // Sets pins in PIO to be inputs
-#else
-    pio_sm_set_consecutive_pindirs(used_pio, used_sm, LPT_BASE_PIN, 9, false); // Sets pins in PIO to be inputs
-#endif
-
-    if (pio_sm_init(used_pio, used_sm, used_offset, &used_config) < 0) {
+    if (pio_sm_init(sound_left_pio, sound_left_sm, sound_left_offset, &used_config_left) < 0) {
         return false;
     }
 
-    pio_sm_set_enabled(used_pio, used_sm, true);
+    pio_sm_set_enabled(sound_left_pio, sound_left_sm, true);
+
+    pio_sm_config used_config_right = stereo_right_program_get_default_config(sound_right_offset);
+    sm_config_set_in_pins(&used_config_right, LPT_BASE_PIN);
+    sm_config_set_fifo_join(&used_config_right, PIO_FIFO_JOIN_RX);
+
+    for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 8; i++) { // Sets pins to use PIO
+        pio_gpio_init(sound_right_pio, i);
+    }
+
+    pio_sm_set_consecutive_pindirs(sound_right_pio, sound_right_sm, LPT_BASE_PIN, 8, false); // Sets pins in PIO to be inputs
+
+    if (pio_sm_init(sound_right_pio, sound_right_sm, sound_right_offset, &used_config_right) < 0) {
+        return false;
+    }
+
+    pio_sm_set_enabled(sound_right_pio, sound_right_sm, true);
+
+    pio_sm_config used_config_detection = stereo_detection_program_get_default_config(detection_offset);
+    sm_config_set_in_pins(&used_config_detection, LPT_BASE_PIN + 7);
+    sm_config_set_out_pins(&used_config_detection, LPT_BUSY_PIN, 1);
+
+    pio_gpio_init(detection_pio, LPT_BASE_PIN + 7);
+    pio_gpio_init(detection_pio, LPT_BUSY_PIN);
+
+    pio_sm_set_consecutive_pindirs(detection_pio, detection_sm, LPT_BASE_PIN + 7, 1, false);
+    pio_sm_set_consecutive_pindirs(detection_pio, detection_sm, LPT_BUSY_PIN, 1, true);
+
+    if (pio_sm_init(detection_pio, detection_sm, detection_offset, &used_config_detection) < 0) {
+        return false;
+    }
+
+    pio_sm_set_enabled(detection_pio, detection_sm, true);
+
     return true;
 }
 
 bool unload_stereo(Device *self) {
-    pio_sm_set_enabled(used_pio, used_sm, false);
-    pio_manager_unload(used_pio, used_sm, used_offset, &stereo_program);
+    pio_sm_set_enabled(sound_left_pio, sound_left_sm, false);
+    pio_sm_set_enabled(sound_right_pio, sound_right_sm, false);
+    pio_sm_set_enabled(detection_pio, detection_sm, false);
+    pio_manager_unload(sound_left_pio, sound_left_sm, sound_left_offset, &stereo_left_program);
+    pio_manager_unload(sound_right_pio, sound_right_sm, sound_right_offset, &stereo_right_program);
+    pio_manager_unload(detection_pio, detection_sm, detection_offset, &stereo_detection_program);
+
 
     for (int i = LPT_BASE_PIN; i < LPT_BASE_PIN + 8; i++) {
         gpio_deinit(i);
     }
     gpio_deinit(LPT_STROBE_PIN);
+    gpio_deinit(LPT_BUSY_PIN);
     return true;
 }
 
 size_t generate_stereo(Device *self, int16_t *left_sample, int16_t *right_sample) {
-    for (int i = 0; i < 16; i++) {
-        while (pio_sm_is_rx_fifo_empty(used_pio, used_sm)) {
-            tight_loop_contents();
-        }
-        uint32_t raw_data = pio_sm_get(used_pio, used_sm);
-
-#if LPT_STROBE_SWAPPED
-        int16_t current_sample = (((raw_data >> 24) & 0xFF) - 128) << 8;
-        if (((raw_data >> 23) & 0x01) == 0) {
-            *left_sample = current_sample;
-        } else {
-            *right_sample = current_sample;
-        }
-#else
-        int16_t current_sample = (((raw_data >> 23) & 0xFF) - 128) << 8;
-        if (((raw_data >> 27) & 0x01) == 0) {
-            *left_sample = current_sample;
-        } else {
-            *right_sample = current_sample;
-        }
-#endif
+    /*while (pio_sm_is_rx_fifo_empty(sound_left_pio, sound_left_sm) || pio_sm_is_rx_fifo_empty(sound_right_pio, sound_right_sm)) {
+        tight_loop_contents();
+    }*/
+    if (!pio_sm_is_rx_fifo_empty(sound_left_pio, sound_left_sm)) {
+        *left_sample = (((pio_sm_get(sound_left_pio, sound_left_sm) >> 24) & 0xFF) - 128) << 8;
+    }
+    if (!pio_sm_is_rx_fifo_empty(sound_right_pio, sound_right_sm)) {
+        *right_sample = (((pio_sm_get(sound_right_pio, sound_right_sm) >> 24) & 0xFF) - 128) << 8;
     }
     return 0;
 }
