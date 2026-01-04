@@ -16,12 +16,6 @@
 #define DSS_RINGBUFFER_SIZE 16
 #define SAMPLES_REPEAT 14 // Approximation of 7kHz (sample rate is 96000 => 6,86 kHz, within specified +-5 % tolerance)
 
-pio_interrupt_source_t irq_sources[] = { 
-    pis_sm0_rx_fifo_not_empty, 
-    pis_sm1_rx_fifo_not_empty, 
-    pis_sm2_rx_fifo_not_empty, 
-    pis_sm3_rx_fifo_not_empty};
-
 // Variables for PIO - each device simulated has its own
 static PIO used_pio;
 static int8_t used_sm;
@@ -70,11 +64,7 @@ bool load_dss(Device *self) {
         return false;
     }
 
-    if (used_pio == pio1) {
-        used_pio_irq = PIO1_IRQ_0;
-    } else {
-        used_pio_irq = PIO2_IRQ_0;
-    }
+    used_pio_irq = pio_manager_get_irq(used_pio);
 
     pio_sm_config used_config = dss_program_get_default_config(used_offset);
     sm_config_set_in_pins(&used_config, LPT_BASE_PIN);

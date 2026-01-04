@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include "hardware/pio.h"
 
+extern const pio_interrupt_source_t irq_sources[4];
+
 /**
  * @brief Loads PIO program into free PIO block and sets PIO, SM and offset.
  *
@@ -24,5 +26,14 @@ int pio_manager_load(PIO *pio, uint8_t *state_machine, const pio_program_t *assi
  * @param assigned_program Program that should be unloaded.
  */
 void pio_manager_unload(PIO pio, uint8_t state_machine, int offset, const pio_program_t *running_program);
+
+/**
+ * @brief Returns correct IRQ based on PIO.
+ *
+ * @param pio PIO where program is running.
+ *
+ * @return irq constant of the given PIO.
+ */
+int8_t pio_manager_get_irq(PIO pio);
 
 #endif // PIO_MANAGER_H
