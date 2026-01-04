@@ -33,7 +33,8 @@ static int16_t last_left_sample = 0;
 static int16_t last_right_sample = 0;
 static uint pwm_slice;
 
-void get_samples() {
+void get_samples(void) {
+    pwm_clear_irq(pwm_slice);
     if (!pio_sm_is_rx_fifo_empty(sound_left_pio, sound_left_sm)) {
         last_left_sample = (((pio_sm_get(sound_left_pio, sound_left_sm) >> 24) & 0xFF) - 128) << 8;
     }
@@ -42,14 +43,6 @@ void get_samples() {
     }
     ringbuffer_push(last_left_sample);
     ringbuffer_push(last_right_sample);
-}
-
-void pwm_irq_handler(void) {
-    // vyčisti IRQ flag
-    pwm_clear_irq(pwm_slice);
-
-    // tady se volá tvoje funkce pro tick
-    get_samples();
 }
 
 bool load_stereo(Device *self) {
@@ -130,7 +123,7 @@ bool load_stereo(Device *self) {
     pwm_set_gpio_level(PICO_UNUSED_PIN, top/2);
     pwm_clear_irq(pwm_slice);
     pwm_set_irq_enabled(pwm_slice, true);
-    irq_set_exclusive_handler(PWM_IRQ_WRAP, pwm_irq_handler);
+    irq_set_exclusive_handler(PWM_IRQ_WRAP, get_samples);
     irq_set_enabled(PWM_IRQ_WRAP, true);
     pwm_set_enabled(pwm_slice, true);
 
@@ -140,7 +133,7 @@ bool load_stereo(Device *self) {
 bool unload_stereo(Device *self) {
     pwm_set_enabled(pwm_slice, false);
     irq_set_enabled(PWM_IRQ_WRAP, false);
-    irq_remove_handler(PWM_IRQ_WRAP, pwm_irq_handler);
+    irq_remove_handler(PWM_IRQ_WRAP, get_samples);
 
     pio_sm_set_enabled(sound_left_pio, sound_left_sm, false);
     pio_sm_set_enabled(sound_right_pio, sound_right_sm, false);
