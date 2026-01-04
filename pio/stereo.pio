@@ -1,5 +1,5 @@
 .define STROBE 0            ; Set to proper STROBE
-.define AUTOFEED 0          ; Set to proper AUTOFEED
+.define AUTOFEED 15         ; Set to proper AUTOFEED
 
 .program stereo_left
 
