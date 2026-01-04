@@ -19,6 +19,9 @@
 #define PICO_AUDIO_I2S_CLOCK_PINS_SWAPPED 0
 #define PICO_AUDIO_I2S_DATA_PIN 28
 
+// Definition of unused pin
+#define PICO_UNUSED_PIN 20
+
 // Definitions of GPIO mode switch button (GPIO - ground)
 #define CHANGE_BUTTON_PIN 17
 

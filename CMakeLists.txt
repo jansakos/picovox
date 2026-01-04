@@ -69,6 +69,8 @@ target_link_libraries(picoLPTsound
         pico_stdlib
         hardware_pio
         hardware_clocks
+        hardware_pwm
+        hardware_irq
         pico_audio_i2s 
         pico_multicore
         opl )

@@ -9,10 +9,12 @@
 #include "ringbuffer.h"
 #include "hardware/clocks.h"
 #include "hardware/pio.h"
+#include "hardware/irq.h"
+#include "hardware/pwm.h"
 #include "pico/time.h"
 #include "stereo.pio.h"
 
-#define STEREO_RINGBUFFER_SIZE 1024
+#define STEREO_RINGBUFFER_SIZE 2048
 
 // Variables for PIO - each device simulated has its own
 static PIO sound_left_pio;
@@ -29,10 +31,9 @@ static int detection_offset;
 
 static int16_t last_left_sample = 0;
 static int16_t last_right_sample = 0;
+static uint pwm_slice;
 
-repeating_timer_t stereo_buffer_timer;
-
-static bool get_samples(repeating_timer_t *timer_for_buffer) {
+void get_samples() {
     if (!pio_sm_is_rx_fifo_empty(sound_left_pio, sound_left_sm)) {
         last_left_sample = (((pio_sm_get(sound_left_pio, sound_left_sm) >> 24) & 0xFF) - 128) << 8;
     }
@@ -41,7 +42,14 @@ static bool get_samples(repeating_timer_t *timer_for_buffer) {
     }
     ringbuffer_push(last_left_sample);
     ringbuffer_push(last_right_sample);
-    return true;
+}
+
+void pwm_irq_handler(void) {
+    // vyčisti IRQ flag
+    pwm_clear_irq(pwm_slice);
+
+    // tady se volá tvoje funkce pro tick
+    get_samples();
 }
 
 bool load_stereo(Device *self) {
@@ -114,13 +122,30 @@ bool load_stereo(Device *self) {
 
     pio_sm_set_enabled(detection_pio, detection_sm, true);
 
-    add_repeating_timer_us(1000000 / SAMPLE_RATE, get_samples, NULL, &stereo_buffer_timer);
+    gpio_set_function(PICO_UNUSED_PIN, GPIO_FUNC_PWM);
+    pwm_slice = pwm_gpio_to_slice_num(PICO_UNUSED_PIN);
+    uint16_t top = (clock_get_hz(clk_sys) + SAMPLE_RATE / 2) / SAMPLE_RATE - 1;
+    pwm_set_clkdiv(pwm_slice, 1.0f);
+    pwm_set_wrap(pwm_slice, top);
+    pwm_set_gpio_level(PICO_UNUSED_PIN, top/2);
+    pwm_clear_irq(pwm_slice);
+    pwm_set_irq_enabled(pwm_slice, true);
+    irq_set_exclusive_handler(PWM_IRQ_WRAP, pwm_irq_handler);
+    irq_set_enabled(PWM_IRQ_WRAP, true);
+    pwm_set_enabled(pwm_slice, true);
 
     return true;
 }
 
 bool unload_stereo(Device *self) {
-    cancel_repeating_timer(&stereo_buffer_timer);
+        // vypnout PWM slice
+    pwm_set_enabled(pwm_slice, false);
+
+    // vypnout IRQ
+    irq_set_enabled(PWM_IRQ_WRAP, false);
+
+    // případně odregistrovat handler (volitelné)
+    irq_remove_handler(PWM_IRQ_WRAP, pwm_irq_handler);
 
     pio_sm_set_enabled(sound_left_pio, sound_left_sm, false);
     pio_sm_set_enabled(sound_right_pio, sound_right_sm, false);
