@@ -6,9 +6,13 @@
 #include <stdlib.h>
 #include "device.h"
 #include "pio_manager.h"
+#include "ringbuffer.h"
 #include "hardware/clocks.h"
 #include "hardware/pio.h"
+#include "pico/time.h"
 #include "stereo.pio.h"
+
+#define STEREO_RINGBUFFER_SIZE 1024
 
 // Variables for PIO - each device simulated has its own
 static PIO sound_left_pio;
@@ -23,7 +27,26 @@ static PIO detection_pio;
 static int8_t detection_sm;
 static int detection_offset;
 
+static int16_t last_left_sample = 0;
+static int16_t last_right_sample = 0;
+
+repeating_timer_t stereo_buffer_timer;
+
+static bool get_samples(repeating_timer_t *timer_for_buffer) {
+    if (!pio_sm_is_rx_fifo_empty(sound_left_pio, sound_left_sm)) {
+        last_left_sample = (((pio_sm_get(sound_left_pio, sound_left_sm) >> 24) & 0xFF) - 128) << 8;
+    }
+    if (!pio_sm_is_rx_fifo_empty(sound_right_pio, sound_right_sm)) {
+        last_right_sample = (((pio_sm_get(sound_right_pio, sound_right_sm) >> 24) & 0xFF) - 128) << 8;
+    }
+    ringbuffer_push(last_left_sample);
+    ringbuffer_push(last_right_sample);
+    return true;
+}
+
 bool load_stereo(Device *self) {
+    ringbuffer_init(STEREO_RINGBUFFER_SIZE);
+
     sound_left_offset = pio_manager_load(&sound_left_pio, &sound_left_sm, &stereo_left_program);
     if (sound_left_offset < 0) {
         return false;
@@ -91,10 +114,14 @@ bool load_stereo(Device *self) {
 
     pio_sm_set_enabled(detection_pio, detection_sm, true);
 
+    add_repeating_timer_us(1000000 / SAMPLE_RATE, get_samples, NULL, &stereo_buffer_timer);
+
     return true;
 }
 
 bool unload_stereo(Device *self) {
+    cancel_repeating_timer(&stereo_buffer_timer);
+
     pio_sm_set_enabled(sound_left_pio, sound_left_sm, false);
     pio_sm_set_enabled(sound_right_pio, sound_right_sm, false);
     pio_sm_set_enabled(detection_pio, detection_sm, false);
@@ -112,14 +139,11 @@ bool unload_stereo(Device *self) {
     return true;
 }
 
-size_t generate_stereo(Device *self, int16_t *left_sample, int16_t *right_sample) {
-    while (pio_sm_is_rx_fifo_empty(sound_left_pio, sound_left_sm) ^ pio_sm_is_rx_fifo_empty(sound_right_pio, sound_right_sm)) {
+size_t generate_stereo(Device *self, int16_t *left_sample, int16_t *right_sample) {  
+    while (!ringbuffer_pop(left_sample)) {
         tight_loop_contents();
     }
-    if (!pio_sm_is_rx_fifo_empty(sound_left_pio, sound_left_sm)) {
-        *left_sample = (((pio_sm_get(sound_left_pio, sound_left_sm) >> 24) & 0xFF) - 128) << 8;
-        *right_sample = (((pio_sm_get(sound_right_pio, sound_right_sm) >> 24) & 0xFF) - 128) << 8;
-    }
+    ringbuffer_pop(right_sample);
     return 0;
 }
 
