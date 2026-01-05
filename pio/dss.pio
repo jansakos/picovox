@@ -7,8 +7,8 @@
 ; OUTPUTS: none
 
 .wrap_target
-    wait 0 gpio SELIN
-    wait 1 gpio SELIN   ; Wait for WE edge (SELIN)
+    wait 1 gpio SELIN
+    wait 0 gpio SELIN   ; Wait for WE edge (SELIN)
     in pins, 8          ; Read data (D0-D7)
     push block          ; Send data
 .wrap

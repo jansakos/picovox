@@ -14,7 +14,9 @@
 #include "dss.pio.h"
 
 #define DSS_RINGBUFFER_SIZE 16
-#define SAMPLES_REPEAT 14 // Approximation of 7kHz (sample rate is 96000 => 6,86 kHz, within specified +-5 % tolerance)
+#define DSS_SAMPLE_RATE 7000
+
+static const double DSS_RATE_TO_SAMPLE = SAMPLE_RATE / (double) DSS_SAMPLE_RATE;
 
 // Variables for PIO - each device simulated has its own
 static PIO used_pio;
@@ -26,7 +28,7 @@ static int8_t used_pio_irq;
 repeating_timer_t dss_buffer_timer;
 static int16_t current_sample = 0;
 static int16_t repeated_sample = 0;
-static int8_t sample_used = 0;
+static double sample_repeated = 0;
 static bool is_new_sample = true;
 
 void __isr ringbuffer_filler(void) {
@@ -51,8 +53,8 @@ static bool new_sample(repeating_timer_t *timer_for_buffer) {
     }
 
     ringbuffer_pop(&current_sample);
-    current_sample = current_sample << 8;
     is_new_sample = true;
+    current_sample = current_sample << 8;
     return true;
 }
 
@@ -91,7 +93,7 @@ bool load_dss(Device *self) {
 
     pio_sm_set_enabled(used_pio, used_sm, true);
 
-    add_repeating_timer_us(1000000 / 7000, new_sample, NULL, &dss_buffer_timer);
+    add_repeating_timer_us(1000000 / DSS_SAMPLE_RATE, new_sample, NULL, &dss_buffer_timer);
     return true;
 }
 
@@ -111,18 +113,22 @@ bool unload_dss(Device *self) {
     return true;
 }
 
-size_t generate_dss(Device *self, int16_t *left_sample, int16_t *right_sample) {
-    if (sample_used >= SAMPLES_REPEAT) {
-        while(!is_new_sample) {
-            tight_loop_contents();
+static inline void correct_sample(void) {
+    if (sample_repeated > DSS_RATE_TO_SAMPLE) {
+        while (!is_new_sample) {
+            tight_loop_contents;
         }
+        sample_repeated -= DSS_RATE_TO_SAMPLE;
         repeated_sample = current_sample;
-        sample_used = 0;
         is_new_sample = false;
     }
+    sample_repeated++;
+}
+
+size_t generate_dss(Device *self, int16_t *left_sample, int16_t *right_sample) {
+    correct_sample();
     *left_sample = repeated_sample;
     *right_sample = repeated_sample;
-    sample_used++;
     return 0;
 }
 
