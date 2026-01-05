@@ -28,7 +28,7 @@ static int8_t used_sm;
 static int used_offset;
 
 // Killswitch for core1
-volatile bool stop_core1 = false;
+static volatile bool stop_core1 = false;
 
 static int16_t last_sample = 0;
 static int8_t sample_used = 0;

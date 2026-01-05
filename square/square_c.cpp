@@ -7,11 +7,7 @@ struct tandy_t {
 
 tandy_t *tandy_create(void)
 {
-    try {
-        return new tandy_t{};
-    } catch (...) {
-        return nullptr;
-    }
+    return new tandy_t();
 }
 
 void tandy_write(tandy_t *tandy, uint8_t data)
