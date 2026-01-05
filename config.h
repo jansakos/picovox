@@ -34,4 +34,4 @@
     #error "STROBE pin must be either LPT_BASE_PIN-1 or LPT_BASE_PIN+8"
 #endif
 
-#endif
+#endif // CONFIG_H

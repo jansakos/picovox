@@ -53,4 +53,4 @@ Device *create_opl2();
 /*Device *create_tnd();
 Device *create_cms();*/
 
-#endif
+#endif // DEVICE_H
