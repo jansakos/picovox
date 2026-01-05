@@ -33,7 +33,7 @@ static int16_t last_left_sample = 0;
 static int16_t last_right_sample = 0;
 static uint pwm_slice;
 
-void get_samples(void) {
+static void get_samples(void) {
     pwm_clear_irq(pwm_slice);
     if (!pio_sm_is_rx_fifo_empty(sound_left_pio, sound_left_sm)) {
         last_left_sample = (((pio_sm_get(sound_left_pio, sound_left_sm) >> 24) & 0xFF) - 128) << 8;

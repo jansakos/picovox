@@ -34,7 +34,7 @@ bool load_ftl(Device *self) {
     pio_sm_config used_config_sound = ftl_sound_program_get_default_config(sound_offset);
     sm_config_set_in_pins(&used_config_sound, LPT_BASE_PIN);
     sm_config_set_fifo_join(&used_config_sound, PIO_FIFO_JOIN_RX);
-    sm_config_set_clkdiv(&used_config_sound, (((float) clock_get_hz(clk_sys)) / (SAMPLE_RATE * 2)));
+    sm_config_set_clkdiv(&used_config_sound, (((float) clock_get_hz(clk_sys)) / (SAMPLE_RATE * 6)));
 
     pio_sm_config used_config_detection = ftl_detection_program_get_default_config(detection_offset);
     sm_config_set_in_pins(&used_config_detection, LPT_SELIN_PIN);
@@ -78,11 +78,37 @@ bool unload_ftl(Device *self) {
     return true;
 }
 
-size_t generate_ftl(Device *self, int16_t *left_sample, int16_t *right_sample) {
+static inline int16_t read_sample(void) {
     while (pio_sm_is_rx_fifo_empty(sound_pio, sound_sm)) {
         tight_loop_contents();
     }
-    int16_t current_sample = (((pio_sm_get(sound_pio, sound_sm) >> 24) & 0xFF) - 128) << 8;
+    return (((pio_sm_get(sound_pio, sound_sm) >> 24) & 0xFF) - 128) << 8;
+}
+
+static inline int16_t best_sample(int16_t a, int16_t b, int16_t c) {
+    int16_t max_ab = a;
+    int16_t min_ab = b;
+    if (a < b) {
+        max_ab = b;
+        min_ab = a;
+    }
+
+    if (c >= max_ab) {
+        return max_ab;
+    }
+
+    if (c >= min_ab) {
+        return c;
+    }
+
+    return min_ab;
+}
+
+size_t generate_ftl(Device *self, int16_t *left_sample, int16_t *right_sample) {
+    int16_t sample1 = read_sample();
+    int16_t sample2 = read_sample();
+    int16_t sample3 = read_sample();
+    int16_t current_sample = best_sample(sample1, sample2, sample3);
     *left_sample = current_sample;
     *right_sample = current_sample;
     return 0;
