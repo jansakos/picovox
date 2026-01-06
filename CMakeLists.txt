@@ -55,6 +55,7 @@ pico_generate_pio_header(${PROJECT_NAME}
     ${PIO_PATH}/dss.pio
     ${PIO_PATH}/opl2.pio
     ${PIO_PATH}/tandy.pio
+    ${PIO_PATH}/cms.pio
 )
 
 pico_set_program_name(picoLPTsound "picoLPTsound")

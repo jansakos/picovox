@@ -1,5 +1,3 @@
-.define SELIN 11            ; Set to proper SELIN
-.define AUTOFEED 15         ; Set to proper AUTOFEED
 .define INIT 12             ; Set to proper INIT
 
 .program cms_one
@@ -7,11 +5,14 @@
 ; CMSLPT - Sound part (no reset/ready signal)
 ; INPUTS: STROBE, D0-D7
 ; OUTPUTS: none
+; JMP: AUTOFEED
 
 .wrap_target
 start:
     wait 0 gpio INIT            ; Wait for WE edge (INIT)
-    jmp pin AUTOFEED, start     ; If not AUTOFEED low, go back to detection
+    jmp PIN write               
+    jmp start                   ; If not AUTOFEED low, go back to detection
+write:
     in pins, 9                  ; Read data (STROBE, D0-D7 || D0-D7, STROBE)
     push block                  ; Send data
     wait 1 gpio INIT
@@ -22,12 +23,15 @@ start:
 ; CMSLPT - Sound part (no reset/ready signal)
 ; INPUTS: STROBE, D0-D7
 ; OUTPUTS: none
+; JMP: SELIN
 
 .wrap_target
 start:
     wait 0 gpio INIT            ; Wait for WE edge (INIT)
-    jmp pin SELIN, start        ; If not SELIN low, go back to detection
-    in pins, 8                  ; Read data (STROBE, D0-D7 || D0-D7, STROBE)
+    jmp PIN write               
+    jmp start                   ; If not SELIN low, go back to detection
+write:
+    in pins, 9                  ; Read data (STROBE, D0-D7 || D0-D7, STROBE)
     push block                  ; Send data
     wait 1 gpio INIT
 .wrap
