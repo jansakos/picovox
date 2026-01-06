@@ -43,7 +43,6 @@ static void reset_chip(tandy_t **device) {
 static void core1_operation(void) {
     tandy_t *device = tandy_create();
     int16_t current_sample = 0;
-    int16_t register_address = 0;
 
     while (!stop_core1) {
         while ((!pio_sm_is_rx_fifo_empty(used_pio, used_sm))) {

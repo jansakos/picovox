@@ -45,7 +45,7 @@ add_subdirectory(opl)
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(picoLPTsound picoLPTsound.c pio_manager.c ringbuffer.c covox.c stereo.c ftl.c dss.c opl2.c tandy.c square/square.cpp square/square_c.cpp)
+add_executable(picoLPTsound picoLPTsound.c pio_manager.c ringbuffer.c covox.c stereo.c ftl.c dss.c opl2.c tandy.c cms.c square/square.cpp square/square_c.cpp)
 
 # Add all PIOs to compile
 pico_generate_pio_header(${PROJECT_NAME}

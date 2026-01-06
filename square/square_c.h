@@ -9,7 +9,7 @@ extern "C" {
 
 /**
  * square_c files are written by me (jansakos) as a way to minimize use of any other language except C in the main code.
- * This is therefore C API that should handle all the needed operations for simulation of Tandy and CMS with C-compatible functions.
+ * This is therefore C API that should handle all the needed operations for simulation of Tandy and gameblaster with C-compatible functions.
  * Since it is just API for the square.c library, both square_c.cpp and square_c.h are also licensed under the BSD 3-clause license.
  */
 
@@ -52,42 +52,42 @@ int32_t tandy_get_sample(tandy_t *tandy);
 void tandy_destroy(tandy_t *tandy);
 
 /**
- * CMS part (two chips SAA-1099)
+ * Gameblaster part (two chips SAA-1099)
  */
 
-typedef struct cms_t cms_t;
+typedef struct gameblaster_t gameblaster_t;
 
 /**
- * @brief Creates a new CMS sound device.
+ * @brief Creates a new gameblaster sound device.
  * 
  * @return pointer to the created (and loaded) device.
  */
-cms_t *cms_create(void);
+gameblaster_t *gameblaster_create(void);
 
 /**
- * @brief Sends new data into CMS.
+ * @brief Sends new data into gameblaster.
  * 
- * @param cms is a pointer to the loaded CMS device.
+ * @param gameblaster is a pointer to the loaded gameblaster device.
  * @param address is an address where data should be placed.
- * @param data is raw data, input to the CMS device.
+ * @param data is raw data, input to the gameblaster device.
  */
-void cms_write(cms_t *cms, uint32_t address, uint8_t data);
+void gameblaster_write(gameblaster_t *gameblaster, uint32_t address, uint8_t data);
 
 /**
- * @brief Gets a sample from the CMS device.
+ * @brief Gets a sample from the gameblaster device.
  * 
- * @param cms is a pointer to the loaded CMS device.
+ * @param gameblaster is a pointer to the loaded gameblaster device.
  * @param left is a pointer where left sample should be stored.
  * @param right is a pointer where right sample should be stored.
  */
-void cms_get_sample(cms_t *cms, int16_t *left, int16_t *right);
+void gameblaster_get_sample(gameblaster_t *gameblaster, int32_t *left, int32_t *right);
 
 /**
- * @brief Destroys (unloads) given CMS device.
+ * @brief Destroys (unloads) given gameblaster device.
  * 
- * @param cms is a pointer to the loaded CMS device.
+ * @param gameblaster is a pointer to the loaded gameblaster device.
  */
-void cms_destroy(cms_t *cms);
+void gameblaster_destroy(gameblaster_t *gameblaster);
 
 #ifdef __cplusplus
 }
