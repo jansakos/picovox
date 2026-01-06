@@ -61,13 +61,8 @@ void gameblaster_get_sample(gameblaster_t *gameblaster, int32_t *left, int32_t *
     int32_t buffer[2] = {0, 0};
 
     gameblaster->device.generator(0).generate_frames(buffer, 1);
-    int32_t l = buffer[0];
-    int32_t r = buffer[1];
-
-    buffer[0] = 0;
-    buffer[1] = 0;
     gameblaster->device.generator(1).generate_frames(buffer, 1);
 
-    *left  = l + buffer[0];
-    *right = r + buffer[1];
+    *left  = buffer[0];
+    *right = buffer[1];
 }

@@ -23,6 +23,8 @@ static int used_offset;
 // Killswitch for core1
 static volatile bool stop_core1 = false;
 
+static bool sample_used = false;
+
 static void load_new_instruction(tandy_t *device) {
     if (pio_sm_is_rx_fifo_empty(used_pio, used_sm)) {
         return;
@@ -114,6 +116,11 @@ bool unload_tandy(Device *self) {
 }
 
 size_t generate_tandy(Device *self, int16_t *left_sample, int16_t *right_sample) {
+    if (!sample_used) {
+        sample_used = true;
+        return 0;
+    }
+    sample_used = false;
     int16_t curr_sample = 0;
     while (ringbuffer_empty()) {
         tight_loop_contents();

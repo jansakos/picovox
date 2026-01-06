@@ -24,6 +24,8 @@ static PIO second_pio;
 static int8_t second_sm;
 static int second_offset;
 
+static int sample_used = false;
+
 // Killswitch for core1
 static volatile bool stop_core1 = false;
 
@@ -76,8 +78,8 @@ static void core1_operation(void) {
         while (ringbuffer_full() && !stop_core1) {
             load_new_instruction(device);
         }
-        ringbuffer_push(current_left_sample);
-        ringbuffer_push(current_right_sample);
+        ringbuffer_push(current_left_sample >> 1);
+        ringbuffer_push(current_right_sample >> 1);
     }
     gameblaster_destroy(device);
 }
@@ -180,6 +182,11 @@ bool unload_cms(Device *self) {
 }
 
 size_t generate_cms(Device *self, int16_t *left_sample, int16_t *right_sample) {
+    if (!sample_used) {
+        sample_used = true;
+        return 0;
+    }
+    sample_used = false;
     while (ringbuffer_empty()) {
         tight_loop_contents();
     }

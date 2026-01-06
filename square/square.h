@@ -45,7 +45,7 @@
 #ifndef ASG_AUDIO_SQUARE_H
 #define ASG_AUDIO_SQUARE_H
 
-static constexpr uint32_t OUTPUT_FREQUENCY = SAMPLE_RATE;
+static constexpr uint32_t OUTPUT_FREQUENCY = SAMPLE_RATE / 2;
 
 
 //===========================================================================
