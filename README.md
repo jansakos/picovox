@@ -96,4 +96,4 @@ Still, there are some people and projects I would like to thank explicitly:
 - [Vogons community](https://www.vogons.org/) for a place to share my ideas and to find people with similar interests.
 - [Serdaco](https://www.serdaco.com/default.aspx) for distribution of the OPL2LPT, CMSLPT, TNDLPT and many other devices. Please, in case you prefer real sound over emulated, these are the devices you are probably looking for.
 
-- *My family, my friends and everyone who has supported me any way. Without you I would not have done it.*
+- *My family, my friends and everyone who has supported me in any way. Without you I would not have done it.*
