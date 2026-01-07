@@ -30,7 +30,7 @@ include(pico_sdk_import.cmake)
 
 # Set paths for Pico Extras and PIO programs
 set(PICO_EXTRAS_PATH "${CMAKE_CURRENT_LIST_DIR}/pico-extras")
-set(PIO_PATH "${CMAKE_CURRENT_LIST_DIR}/pio")
+set(PIO_PATH "${CMAKE_CURRENT_LIST_DIR}/devices/pio")
 
 # Include Pico Extras cmake
 include(${PICO_EXTRAS_PATH}/external/pico_extras_import.cmake)
@@ -45,7 +45,19 @@ add_subdirectory(opl)
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(picovox picovox.c pio_manager.c ringbuffer.c covox.c stereo.c ftl.c dss.c opl2.c tandy.c cms.c square/square.cpp square/square_c.cpp)
+add_executable(picovox 
+        picovox.c 
+        pio_manager/pio_manager.c 
+        ringbuffer/ringbuffer.c 
+        devices/covox.c 
+        devices/stereo.c 
+        devices/ftl.c 
+        devices/dss.c 
+        devices/opl2.c 
+        devices/tandy.c 
+        devices/cms.c 
+        square/square.cpp 
+        square/square_c.cpp)
 
 # Add all PIOs to compile
 pico_generate_pio_header(${PROJECT_NAME}
@@ -79,6 +91,9 @@ target_link_libraries(picovox
 # Add the standard include files to the build
 target_include_directories(picovox PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
+        ${CMAKE_CURRENT_LIST_DIR}/devices
+        ${CMAKE_CURRENT_LIST_DIR}/ringbuffer
+        ${CMAKE_CURRENT_LIST_DIR}/pio_manager
 )
 
 pico_add_extra_outputs(picovox)

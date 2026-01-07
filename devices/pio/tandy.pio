@@ -1,0 +1,34 @@
+.define STROBE 0            ; Set to proper STROBE
+.define INIT 12             ; Set to proper INIT
+
+.program tandy_sound
+
+; TNDLPT - Sound part (no reset/ready signal)
+; INPUTS: D0-D7
+; OUTPUTS: none
+
+.wrap_target
+    wait 0 gpio STROBE      ; Check CE is high (STROBE)
+    wait 0 gpio INIT        ; Wait for WE edge (INIT)
+    in pins, 8              ; Read data (D0-D7)
+    push block              ; Send data
+    wait 1 gpio INIT
+.wrap
+
+.program tandy_detection
+
+; TNDLPT - Detection part (ready signal)
+; INPUTS: none
+; OUTPUTS: none
+; SET: ACK
+
+.wrap_target
+    set pins, 1             ; Set ACK to high
+    wait 0 gpio STROBE      ; Check CE is high (STROBE)
+    wait 0 gpio INIT        ; Wait for WE edge (INIT)
+    set pins, 0 [31]        ; Set ACK to low
+    wait 1 gpio INIT
+    nop [31]                ; And don't rush it
+    nop [31]                ; Like really don't
+    set pins, 1             ; Set ACK back to high
+.wrap
