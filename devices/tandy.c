@@ -100,7 +100,7 @@ bool load_tandy(Device *self) {
     pio_sm_set_enabled(sound_pio, sound_sm, true);
 
     pio_sm_config detection_config = tandy_detection_program_get_default_config(detection_offset);
-    sm_config_set_set_pin_base(&detection_config, LPT_ACK_PIN);
+    sm_config_set_set_pins(&detection_config, LPT_ACK_PIN, 1);
     sm_config_set_clkdiv(&detection_config, clock_get_hz(clk_sys) / TND_DETECTION_FREQ_HZ);
 
     pio_gpio_init(detection_pio, LPT_STROBE_PIN);

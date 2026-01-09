@@ -26,9 +26,8 @@
     set pins, 1             ; Set ACK to high
     wait 0 gpio STROBE      ; Check CE is high (STROBE)
     wait 0 gpio INIT        ; Wait for WE edge (INIT)
-    set pins, 0 [31]        ; Set ACK to low
+    set pins, 0             ; Set ACK to low
     wait 1 gpio INIT
     nop [31]                ; And don't rush it
     nop [31]                ; Like really don't
-    set pins, 1             ; Set ACK back to high
 .wrap
